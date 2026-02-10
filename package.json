@@ -1,0 +1,32 @@
+{
+  "name": "harmonic-nova",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "form-data": "^4.0.5",
+    "framer-motion": "^12.34.0",
+    "lamejs": "^1.2.1",
+    "lucide-react": "^0.563.0",
+    "next": "16.1.6",
+    "node-fetch": "^3.3.2",
+    "pdfjs-dist": "^5.4.624",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "zustand": "^5.0.11"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "typescript": "^5"
+  }
+}

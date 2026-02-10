@@ -1,0 +1,7 @@
+node_modules/
+.next/
+.env*
+.DS_Store
+public/uploads/
+/public/pdf_worker/
+
