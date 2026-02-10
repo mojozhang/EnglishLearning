@@ -29,7 +29,39 @@ Optimized for non-native speakers, especially Chinese learners.
     - Click **Red Words**: Plays standard pronunciation **3 times** for drilling.
     - **Silence Detection (VAD)**: Auto-stops recording after 4 seconds of silence.
 
-## 🛠️ Tech Stack
+## � User Guide
+
+### Phase 1: Reading (Input)
+1. **Upload PDF**: On the home page, select or drag your English book PDF.
+2. **Read & Highlight**: The app displays text segment by segment.
+    - **Left**: Original English text.
+    - **Right**: Chinese translation (Simulated/Placeholder).
+    - **Action**: Click any unfamiliar English word. It will turn **blue** and be added to your "Struggle List".
+3. **Finish Section**: Once you finish reading a page and selecting words, click "Next" to proceed.
+
+### Phase 2: Memorizing (Reinforcement)
+1. **Review Words**: You will see flashcards for the words you selected.
+2. **Check Context**: If you forget the meaning, click "Show Context" to see the original sentence where you found it.
+3. **Confirm**: Click "I Know This Word" only when you have truly memorized it. This ensures active recall.
+
+### Phase 3: Speaking (Output & Correction)
+1. **Read Aloud**: The system shows one sentence at a time.
+2. **Record**: 
+    - Click the **Microphone** button.
+    - Wait for the "Ready... Go!" prompt.
+    - Read the sentence clearly.
+    - The recording auto-stops after 4 seconds of silence, or you can click Stop manually.
+3. **Get Feedback**:
+    - **Green**: Perfect pronunciation.
+    - **Red**: Needs improvement.
+4. **Correct & Repeat**:
+    - **Click Green Word**: Hear standard pronunciation (1x).
+    - **Click Red Word**: Hear standard pronunciation (3x loop) to practice.
+    - **Play Original**: Hear the full sentence TTS.
+    - **Play Recording**: Hear your own voice to compare.
+5. **Next**: Only when you feel confident, move to the next sentence.
+
+## �🛠️ Tech Stack
 
 - **Framework**: Next.js 14 (App Router)
 - **Language**: TypeScript
