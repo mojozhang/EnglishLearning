@@ -1,0 +1,50 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String   // Hashed
+  nickname  String?
+  createdAt DateTime @default(now())
+
+  books      Book[]
+  vocabulary Vocabulary[]
+}
+
+model Book {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  content   String   // Store chunks JSON string
+  
+  progress  Int      @default(0) // Current Chunk Index
+  currentPhase String @default("READING") // Current phase: UPLOAD, READING, MEMORIZING, SPEAKING
+  currentSentenceIndex Int @default(0) // Current sentence index in SPEAKING phase
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Vocabulary {
+  id          String   @id @default(uuid())
+  userId      String
+  word        String
+  mastered    Boolean  @default(false)
+  reviewCount Int      @default(0)
+  addedAt     DateTime @default(now())
+ 
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, word])
+}

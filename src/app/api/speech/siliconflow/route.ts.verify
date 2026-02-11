@@ -1,0 +1,49 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function POST(request: NextRequest) {
+    try {
+        const formData = await request.formData();
+        const audioFile = formData.get('audio') as Blob;
+
+        if (!audioFile) {
+            return NextResponse.json({ error: 'No audio file provided' }, { status: 400 });
+        }
+
+        const apiKey = process.env.SILICONFLOW_API_KEY;
+        if (!apiKey) {
+            return NextResponse.json({ error: 'SiliconFlow API key not configured' }, { status: 500 });
+        }
+
+        // SiliconFlow (FunAudioLLM/SenseVoiceSmall)
+        // https://docs.siliconflow.cn/api-reference/audio-transcriptions
+
+        const siliconFormData = new FormData();
+        siliconFormData.append('file', audioFile, 'audio.wav');
+        siliconFormData.append('model', 'FunAudioLLM/SenseVoiceSmall'); // Or 'openai/whisper-large-v3'
+        siliconFormData.append('language', 'en'); // Force English to avoid detecting Chinese in noise
+
+        const response = await fetch('https://api.siliconflow.cn/v1/audio/transcriptions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+            },
+            body: siliconFormData,
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('SiliconFlow API Error:', errorText);
+            throw new Error(`SiliconFlow API Error: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return NextResponse.json({ text: data.text });
+
+    } catch (error: any) {
+        console.error('Speech recognition error:', error);
+        return NextResponse.json(
+            { error: error.message || 'Recognition failed' },
+            { status: 500 }
+        );
+    }
+}

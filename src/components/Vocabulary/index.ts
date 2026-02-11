@@ -1,1 +1,1 @@
-export { default } from './VocabularyTrainer';
+export { default } from "./VocabularyTrainer";
