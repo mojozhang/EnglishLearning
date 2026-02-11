@@ -90,7 +90,7 @@ export default function FileUploader() {
         processedLines.sort((a, b) => b.y - a.y);
 
         // Filter out headers/footers based on relative position and patterns
-        const bodyOnly = lines.filter((line, idx) => {
+        const bodyOnly = processedLines.filter((line, idx) => {
           const relativeY = 1 - line.y / pageHeight;
 
           // 1. Position-based filtering: Cut top 15% and bottom 15%
