@@ -27,7 +27,7 @@ A comprehensive English learning web application built with **Next.js**, designe
 
 Optimized for non-native speakers, especially Chinese learners.
 
-- **Engine choice**: Integrates **Baidu Speech API** to bypass Web Speech API limitations in China.
+- **Engine choice**: Integrates **SiliconFlow API** (siliconflow.cn) for high-quality speech recognition.
 - **Smart Correction**:
   - **Visual Feedback**: Green for correct, Red for wrong pronunciation.
   - **Deep Optimization**:
@@ -161,7 +161,7 @@ Optimized for non-native speakers, especially Chinese learners.
 
 专为非母语者（尤其是中国学习者）优化。
 
-- **引擎选择**: 集成 **百度语音识别 API**，完美解决国内无法使用 Web Speech API 的问题。
+- **引擎选择**: 集成 **SiliconFlow API** (硅基流动)，提供更高质量的语音识别服务。
 - **智能纠错**:
   - **视觉反馈**: 绿色代表发音正确，红色代表需要改进。
   - **深度优化**:
