@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useStore } from "@/store/useStore";
-import { Check, X, Search, RotateCw } from "lucide-react";
+import { Check, X, Search, RotateCw, Loader2 } from "lucide-react";
 
 export default function VocabularyTrainer() {
   const {
@@ -211,95 +211,110 @@ export default function VocabularyTrainer() {
 
   return (
     <div
+      className="animate-slide-up"
       style={{
-        maxWidth: "600px",
+        maxWidth: "640px",
         margin: "0 auto",
         textAlign: "center",
         display: "flex",
         flexDirection: "column",
-        gap: "2rem",
+        gap: "1.5rem",
         height: "100%",
+        padding: "0 1rem"
       }}
     >
-      {/* Progress Bar */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+      {/* Progress Bar Container */}
+      <div className="glass-card" style={{ padding: "1rem 1.5rem", background: "var(--glass)" }}>
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
-            fontSize: "0.875rem",
+            fontSize: "0.8rem",
+            fontWeight: 700,
             color: "var(--secondary-foreground)",
+            marginBottom: "0.75rem",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em"
           }}
         >
-          <span>已掌握: {masteredWords.length}</span>
-          <span>剩余: {reviewQueue.length}</span>
-          <span>总计: {allWords.length}</span>
+          <span style={{ color: "var(--success)" }}>已击败: {masteredWords.length}</span>
+          <span>待挑战: {reviewQueue.length}</span>
         </div>
         <div
           style={{
             width: "100%",
-            height: "8px",
-            background: "var(--border)",
-            borderRadius: "4px",
+            height: "10px",
+            background: "rgba(0,0,0,0.05)",
+            borderRadius: "20px",
             overflow: "hidden",
+            boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)"
           }}
         >
           <div
             style={{
               width: `${progress}%`,
               height: "100%",
-              background: "var(--success)",
-              transition: "width 0.3s ease",
+              background: "linear-gradient(90deg, var(--success), #34d399)",
+              transition: "width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)",
+              borderRadius: "20px"
             }}
           />
         </div>
       </div>
 
-      {/* Card */}
+      {/* Main Study Card */}
       <div
+        className="glass-card"
         style={{
-          padding: "4rem 2rem",
-          backgroundColor: "var(--background)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--radius)",
-          boxShadow:
-            "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+          padding: "3.5rem 2rem",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
           gap: "2rem",
-          minHeight: "300px",
+          minHeight: "380px",
           position: "relative",
+          background: "var(--secondary)",
+          border: "2px solid var(--border)"
         }}
       >
-        <h2
-          style={{
-            fontSize: "3rem",
-            fontWeight: 800,
-            color: "var(--primary)",
-            cursor: "pointer",
-          }}
-          onClick={() => playWord(currentWord || "", 1)}
-          title="点击播放"
-        >
-          {currentWord || "加载中..."}
-        </h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          <h2
+            style={{
+              fontSize: "4rem",
+              fontWeight: 900,
+              color: "var(--primary)",
+              cursor: "pointer",
+              letterSpacing: "-0.04em",
+              lineHeight: 1,
+              transition: "transform 0.2s"
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+            onClick={() => playWord(currentWord || "", 1)}
+            title="点击发音"
+          >
+            {currentWord || "..."}
+          </h2>
+          <div style={{ opacity: 0.5, display: "flex", justifyContent: "center" }}>
+            <RotateCw size={16} className="animate-pulse" />
+          </div>
+        </div>
 
-        {/* Context - Always Visible */}
-        {/* Context - Always Visible */}
+        {/* Context Container */}
         <div
           style={{
-            marginTop: "1rem",
-            marginBottom: "1rem",
-            padding: "1rem",
-            background: "var(--secondary)",
-            borderRadius: "var(--radius)",
-            fontSize: "1.125rem",
-            lineHeight: 1.6,
+            marginTop: "0.5rem",
+            padding: "1.25rem",
+            background: "rgba(99, 102, 241, 0.05)",
+            borderRadius: "18px",
+            fontSize: "1.1rem",
+            lineHeight: 1.62,
             fontStyle: "italic",
-            color: "var(--secondary-foreground)",
+            color: "var(--foreground)",
             width: "100%",
+            border: "1px solid rgba(99, 102, 241, 0.1)",
+            boxShadow: "inset 0 2px 4px rgba(0,0,0,0.02)"
           }}
         >
           {(() => {
@@ -308,21 +323,26 @@ export default function VocabularyTrainer() {
                 .split(".")
                 .find((s) =>
                   s.toLowerCase().includes((currentWord || "").toLowerCase()),
-                ) || "未找到上下文"
+                ) || "上下文正在赶来..."
             ).trim();
-            if (!currentWord) return "加载中...";
+            if (!currentWord) return "...";
 
             const parts = contextSentence.split(
               new RegExp(`(${currentWord})`, "gi"),
             );
             return (
-              <span>
-                "...
+              <span style={{ opacity: 0.9 }}>
+                "
                 {parts.map((part, i) =>
                   part.toLowerCase() === currentWord.toLowerCase() ? (
                     <span
                       key={i}
-                      style={{ color: "var(--primary)", fontWeight: "bold" }}
+                      style={{
+                        color: "var(--primary)",
+                        fontWeight: 800,
+                        textDecoration: "underline",
+                        textDecorationColor: "var(--accent)"
+                      }}
                     >
                       {part}
                     </span>
@@ -330,129 +350,126 @@ export default function VocabularyTrainer() {
                     part
                   ),
                 )}
-                ..."
+                "
               </span>
             );
           })()}
         </div>
 
-        {/* Definition - Hidden by Default */}
+        {/* Definition Area */}
         <div
           style={{
-            minHeight: "60px",
+            minHeight: "80px",
             width: "100%",
             display: "flex",
             justifyContent: "center",
+            alignItems: "center"
           }}
         >
           {isLoadingDef ? (
-            <p style={{ opacity: 0.5 }}>加载释义中...</p>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", opacity: 0.5 }}>
+              <Loader2 className="animate-spin" size={16} />
+              <span style={{ fontSize: "0.85rem" }}>正在翻阅字典...</span>
+            </div>
           ) : showDefinition ? (
-            definitionData ? (
-              <div
-                style={{
-                  textAlign: "left",
-                  display: "inline-block",
-                  maxWidth: "100%",
-                }}
-              >
-                {definitionData.dictionary &&
-                definitionData.dictionary.length > 0 ? (
-                  <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                    {definitionData.dictionary.map(
-                      (entry: string, idx: number) => (
-                        <li
+            <div className="animate-slide-up" style={{ width: "100%" }}>
+              {definitionData ? (
+                <div style={{ textAlign: "center" }}>
+                  {definitionData.dictionary && definitionData.dictionary.length > 0 ? (
+                    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "0.5rem" }}>
+                      {definitionData.dictionary.map((entry: string, idx: number) => (
+                        <span
                           key={idx}
+                          className="glass-card"
                           style={{
-                            fontSize: "1.25rem",
-                            color: "var(--foreground)",
-                            marginBottom: "0.5rem",
+                            padding: "0.4rem 0.8rem",
+                            fontSize: "1.1rem",
+                            fontWeight: 600,
+                            background: "var(--primary)",
+                            color: "white",
+                            border: "none"
                           }}
                         >
                           {entry}
-                        </li>
-                      ),
-                    )}
-                  </ul>
-                ) : (
-                  <p style={{ fontSize: "1.5rem", color: "var(--foreground)" }}>
-                    (中文释义: {definitionData.translation})
-                  </p>
-                )}
-              </div>
-            ) : (
-              <p style={{ opacity: 0.5 }}>未找到释义。</p>
-            )
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: "1.4rem", fontWeight: 700, color: "var(--primary)" }}>
+                      {definitionData.translation}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p style={{ opacity: 0.5 }}>智商掉线了，没查到释义</p>
+              )}
+            </div>
           ) : (
             <button
               onClick={() => setShowDefinition(true)}
+              className="btn-primary"
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
+                background: "var(--glass)",
                 color: "var(--primary)",
-                border: "1px solid var(--primary)",
-                padding: "0.5rem 1rem",
-                borderRadius: "var(--radius)",
-                fontSize: "0.875rem",
-                background: "transparent",
-                cursor: "pointer",
+                border: "2px solid var(--primary)",
+                fontSize: "0.9rem",
+                boxShadow: "none"
               }}
             >
-              <Search size={16} />
-              查看释义
+              <Search size={18} />
+              揭晓释义
             </button>
           )}
         </div>
       </div>
 
-      {/* Actions */}
+      {/* Responsive Actions */}
       <div
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
-          gap: "1rem",
-          marginTop: "auto",
+          gap: "1.25rem",
+          marginTop: "1rem",
         }}
       >
         <button
           onClick={handleUnknown}
+          className="btn-primary"
           style={{
-            padding: "1rem",
-            backgroundColor: "#fee2e2", // red-100
-            color: "#991b1b", // red-800
-            borderRadius: "var(--radius)",
-            fontSize: "1.125rem",
-            fontWeight: 600,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "0.5rem",
-            border: "1px solid #fecaca",
+            padding: "1.25rem",
+            backgroundColor: "#fff1f2",
+            color: "#e11d48",
+            border: "2px solid #fecdd3",
+            boxShadow: "0 10px 15px -3px rgba(225, 29, 72, 0.1)",
+            fontSize: "1.1rem",
+            fontWeight: 800,
+            borderRadius: "20px"
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#ffe4e6")}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#fff1f2")}
         >
-          <X size={24} />
-          不认识
+          <X size={26} strokeWidth={3} />
+          记不清了
         </button>
 
         <button
           onClick={handleKnown}
+          className="btn-primary"
           style={{
-            padding: "1rem",
-            backgroundColor: "#dcfce7", // green-100
-            color: "#166534", // green-800
-            borderRadius: "var(--radius)",
-            fontSize: "1.125rem",
-            fontWeight: 600,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "0.5rem",
-            border: "1px solid #bbf7d0",
+            padding: "1.25rem",
+            backgroundColor: "#f0fdf4",
+            color: "#16a34a",
+            border: "2px solid #bbf7d0",
+            boxShadow: "0 10px 15px -3px rgba(22, 163, 74, 0.1)",
+            fontSize: "1.1rem",
+            fontWeight: 800,
+            borderRadius: "20px"
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#dcfce7")}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f0fdf4")}
         >
-          <Check size={24} />
-          我认识
+          <Check size={26} strokeWidth={3} />
+          瞬间秒杀
         </button>
       </div>
     </div>

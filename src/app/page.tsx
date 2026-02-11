@@ -137,25 +137,28 @@ export default function Home() {
 
   return (
     <main
+      className="animate-slide-up"
       style={{
-        padding: "2rem",
+        padding: "2rem 1rem",
         display: "flex",
         flexDirection: "column",
         gap: "2rem",
-        maxWidth: "800px",
+        maxWidth: "900px",
         margin: "0 auto",
         minHeight: "100vh",
-        fontFamily: "var(--font-sans)",
         position: "relative",
       }}
     >
       <header
+        className="glass-card"
         style={{
-          borderBottom: "1px solid var(--border)",
-          paddingBottom: "1rem",
+          padding: "1.5rem",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          position: "sticky",
+          top: "1rem",
+          zIndex: 50,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
@@ -166,29 +169,29 @@ export default function Home() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                width: "40px",
-                height: "40px",
-                borderRadius: "50%",
+                width: "42px",
+                height: "42px",
+                borderRadius: "12px",
                 border: "1px solid var(--border)",
-                background: "var(--background)",
-                cursor: "pointer",
+                background: "var(--secondary)",
                 color: "var(--foreground)",
-                transition: "background 0.2s",
+                transition: "all 0.2s",
               }}
-              title="Go Back"
+              onMouseEnter={(e) => (e.currentTarget.style.transform = "translateX(-3px)")}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = "translateX(0)")}
+              title="返回"
             >
-              <ArrowLeft size={20} />
+              <ArrowLeft size={22} />
             </button>
           )}
 
           <div>
             <h1
               style={{
-                fontSize: "2rem",
-                fontWeight: "bold",
-                marginBottom: "0.5rem",
-                background:
-                  "linear-gradient(to right, var(--primary), #9333ea)",
+                fontSize: "1.75rem",
+                fontWeight: 800,
+                letterSpacing: "-0.025em",
+                background: "linear-gradient(135deg, var(--primary) 0%, #9333ea 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 lineHeight: 1.2,
@@ -196,96 +199,109 @@ export default function Home() {
             >
               妈妈我要学英语
             </h1>
-            <p style={{ color: "var(--secondary-foreground)", opacity: 0.8 }}>
-              阶段：
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.25rem" }}>
+              <span style={{ fontSize: "0.75rem", color: "var(--secondary-foreground)", fontWeight: 500 }}>当前状态:</span>
               <span
                 style={{
                   fontWeight: 600,
-                  color: "var(--foreground)",
-                  backgroundColor: "var(--secondary)",
-                  padding: "0.2rem 0.5rem",
-                  borderRadius: "4px",
-                  fontSize: "0.75rem",
-                  textTransform: "uppercase",
+                  color: "white",
+                  backgroundColor: "var(--primary)",
+                  padding: "0.15rem 0.6rem",
+                  borderRadius: "20px",
+                  fontSize: "0.7rem",
+                  boxShadow: "0 2px 8px rgba(99, 102, 241, 0.3)"
                 }}
               >
-                {phase === "UPLOAD" && "上传"}
-                {phase === "READING" && "阅读"}
-                {phase === "MEMORIZING" && "生词记忆"}
-                {phase === "SPEAKING" && "口语"}
+                {phase === "UPLOAD" && "等待上传"}
+                {phase === "READING" && "沉浸阅读"}
+                {phase === "MEMORIZING" && "词汇突破"}
+                {phase === "SPEAKING" && "开口大声说"}
               </span>
-            </p>
+            </div>
           </div>
         </div>
 
-        {phase !== "UPLOAD" && (
-          <button
-            onClick={() => {
-              if (
-                window.confirm("确定要换一本小说吗？这将清除当前的所有进度。")
-              ) {
-                reset();
-              }
-            }}
-            style={{
-              fontSize: "0.875rem",
-              color: "var(--error)",
-              textDecoration: "underline",
-              cursor: "pointer",
-            }}
-          >
-            换一本小说
-          </button>
-        )}
-
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           <div
+            className="glass-card"
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "0.5rem",
-              color: "var(--foreground)",
+              gap: "0.6rem",
+              padding: "0.5rem 1rem",
+              border: "none",
+              background: "var(--glass)",
             }}
           >
-            <User size={18} />
-            <span style={{ fontSize: "0.875rem", fontWeight: 500 }}>
+            <div style={{
+              width: "28px",
+              height: "28px",
+              borderRadius: "50%",
+              background: "linear-gradient(45deg, var(--primary), var(--accent))",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "white"
+            }}>
+              <User size={16} />
+            </div>
+            <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>
               {user.nickname || user.username}
             </span>
           </div>
+
           <button
             onClick={handleLogout}
+            className="btn-primary"
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              padding: "0.5rem 1rem",
-              borderRadius: "8px",
-              border: "1px solid var(--border)",
-              background: "var(--background)",
-              cursor: "pointer",
-              color: "var(--foreground)",
+              padding: "0.6rem 1.2rem",
               fontSize: "0.875rem",
-              transition: "background 0.2s",
+              background: "rgba(239, 68, 68, 0.1)",
+              color: "var(--error)",
+              boxShadow: "none",
+              border: "1px solid rgba(239, 68, 68, 0.2)"
             }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor = "var(--secondary)")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.backgroundColor = "var(--background)")
-            }
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(239, 68, 68, 0.2)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)")}
           >
             <LogOut size={16} />
-            登出
+            退出
           </button>
         </div>
       </header>
 
       <div style={{ flex: 1, paddingTop: "1rem" }}>
-        {phase === "UPLOAD" && <FileUploader />}
+        {phase === "UPLOAD" && (
+          <div className="glass-card" style={{ padding: "0.5rem" }}>
+            <FileUploader />
+          </div>
+        )}
         {phase === "READING" && <ReaderContainer />}
         {phase === "MEMORIZING" && <VocabularyTrainer />}
         {phase === "SPEAKING" && <SpeechTrainer />}
       </div>
+
+      {phase !== "UPLOAD" && (
+        <footer style={{ textAlign: "center", paddingBottom: "2rem" }}>
+          <button
+            onClick={() => {
+              if (window.confirm("确定要换一本小说吗？这将清除当前的所有进度。")) {
+                reset();
+              }
+            }}
+            style={{
+              fontSize: "0.875rem",
+              color: "var(--secondary-foreground)",
+              opacity: 0.6,
+              transition: "opacity 0.2s"
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.6")}
+          >
+            换一本小说重读
+          </button>
+        </footer>
+      )}
     </main>
   );
 }

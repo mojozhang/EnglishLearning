@@ -632,57 +632,79 @@ export default function SpeechTrainer() {
 
   return (
     <div
+      className="animate-slide-up"
       style={{
-        maxWidth: "900px",
+        maxWidth: "960px",
         margin: "0 auto",
         textAlign: "center",
         height: "100%",
-        paddingBottom: "160px" /* fixed footer padding */,
+        paddingBottom: "180px",
+        paddingLeft: "1rem",
+        paddingRight: "1rem"
       }}
     >
       <div
         style={{
-          color: "#888",
-          fontSize: "0.875rem",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "0.5rem",
+          color: "var(--secondary-foreground)",
+          fontSize: "0.85rem",
+          fontWeight: 700,
           marginBottom: "1rem",
           marginTop: "1rem",
+          textTransform: "uppercase",
+          opacity: 0.6
         }}
       >
-        句子 {currentSentenceIndex + 1} / {sentences.length}
+        <div style={{ width: "20px", height: "1px", background: "currentColor" }} />
+        <span>进度 {currentSentenceIndex + 1} / {sentences.length}</span>
+        <div style={{ width: "20px", height: "1px", background: "currentColor" }} />
       </div>
 
       {/* Translation Display */}
       <div
+        className="glass-card"
         style={{
-          marginBottom: "1rem",
-          color: "var(--secondary-foreground)",
-          fontSize: "1rem",
-          minHeight: "1.5em",
+          marginBottom: "1.5rem",
+          color: "var(--primary)",
+          fontSize: "1.1rem",
+          fontWeight: 600,
+          background: "rgba(99, 102, 241, 0.05)",
+          padding: "1rem 1.5rem",
+          borderLeft: "5px solid var(--primary)",
+          borderRadius: "14px",
+          fontStyle: "italic",
+          opacity: 0.9,
+          textAlign: "left"
         }}
       >
         {sentenceTranslation}
       </div>
 
       <div
+        className="glass-card"
         style={{
-          padding: "2rem 1.5rem",
+          padding: "2.5rem 1.5rem",
           border: isRecording
-            ? "2px solid #ef4444"
+            ? "3px solid #ef4444"
             : isProcessing
-              ? "2px solid #fbbf24"
-              : "1px solid #e5e7eb",
-          borderRadius: "12px",
-          backgroundColor: "white",
-          fontSize: "1.5rem",
-          fontWeight: 500,
+              ? "3px solid #f59e0b"
+              : "2px solid var(--border)",
+          backgroundColor: "var(--secondary)",
+          fontSize: "1.75rem",
+          fontWeight: 700,
           lineHeight: 1.8,
           display: "flex",
           flexWrap: "wrap",
-          gap: "0.25rem",
+          gap: "0.4rem",
           justifyContent: "center",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-          minHeight: "200px",
+          boxShadow: isRecording ? "0 0 30px rgba(239, 68, 68, 0.2)" : "var(--shadow)",
+          minHeight: "260px",
           alignItems: "center",
+          transition: "all 0.3s ease",
+          letterSpacing: "-0.02em"
         }}
       >
         {renderedText}
@@ -690,16 +712,18 @@ export default function SpeechTrainer() {
 
       {recognizedText && (
         <div
+          className="glass-card"
           style={{
-            marginTop: "2rem",
-            padding: "1rem",
-            backgroundColor: "#f3f4f6",
-            borderRadius: "8px",
-            fontSize: "1rem",
-            color: "black",
+            marginTop: "1.5rem",
+            padding: "1.25rem",
+            background: "rgba(0,0,0,0.03)",
+            fontSize: "0.95rem",
+            color: "var(--foreground)",
+            borderStyle: "dashed",
+            opacity: 0.8
           }}
         >
-          <strong>识别结果：</strong>
+          <strong style={{ color: "var(--primary)", marginRight: "0.5rem" }}>识别结果：</strong>
           {recognizedText}
         </div>
       )}
@@ -710,7 +734,7 @@ export default function SpeechTrainer() {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "1rem",
+          gap: "1.25rem",
         }}
       >
         {!isRecording && !isProcessing && (
@@ -720,18 +744,19 @@ export default function SpeechTrainer() {
 
         <div
           style={{
-            fontWeight: 600,
+            fontWeight: 800,
             color:
               status === "SUCCESS"
-                ? "#16a34a"
+                ? "var(--success)"
                 : status === "RECORDING"
                   ? "#ef4444"
-                  : "#2563eb",
+                  : "var(--primary)",
             fontSize:
-              feedbackMsg.includes("Ready") || feedbackMsg.includes("Go!")
-                ? "1.5rem"
-                : "1rem",
-            transition: "font-size 0.3s",
+              feedbackMsg.includes("Go!") || feedbackMsg.includes("SUCCESS")
+                ? "1.8rem"
+                : "1.1rem",
+            transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+            filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))"
           }}
         >
           {feedbackMsg}
@@ -740,267 +765,176 @@ export default function SpeechTrainer() {
         {/* Error Warning */}
         {struggleItems.length > 3 && (
           <div
+            className="animate-slide-up"
             style={{
               color: "#ef4444",
-              fontSize: "0.875rem",
-              marginTop: "0.5rem",
-              fontWeight: 500,
+              fontSize: "0.85rem",
+              background: "#fff1f2",
+              padding: "0.5rem 1rem",
+              borderRadius: "20px",
+              fontWeight: 700,
+              boxShadow: "0 4px 6px -1px rgba(225, 29, 72, 0.1)"
             }}
           >
-            超过3个错误无法进入下一句 (标点符号不发音)
+            🚧 错误稍多，请多尝试几次 (忽略标点)
           </div>
         )}
       </div>
+
+      {/* Floating Controller Footer */}
       <div
+        className="glass-card"
         style={{
           position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: "white",
-          borderTop: "1px solid #e5e7eb",
-          padding: "1rem 2rem 2rem 2rem", // more padding at bottom for safety area
+          bottom: "1.5rem",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "calc(100% - 2rem)",
+          maxWidth: "760px",
+          padding: "1.25rem 2rem",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          gap: "2rem",
-          boxShadow: "0 -4px 20px rgba(0,0,0,0.05)",
-          zIndex: 50,
+          gap: "1.25rem",
+          boxShadow: "0 20px 50px rgba(0,0,0,0.2)",
+          zIndex: 100,
+          background: "rgba(255, 255, 255, 0.95)",
+          border: "2px solid var(--primary)",
         }}
       >
-        {/* 0. Speed Control */}
-        <div
+        {/* Previous */}
+        <button
+          onClick={prevSentence}
+          disabled={currentSentenceIndex === 0 || isRecording || isProcessing}
+          className="btn-primary"
           style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "0.5rem",
+            width: 50,
+            height: 50,
+            padding: 0,
+            borderRadius: "15px",
+            background: "none",
+            border: "2px solid var(--border)",
+            color: "var(--foreground)",
+            boxShadow: "none",
+            opacity: currentSentenceIndex === 0 || isRecording || isProcessing ? 0.3 : 1
           }}
         >
+          <ArrowRight size={24} style={{ transform: "rotate(180deg)" }} />
+        </button>
+
+        {/* Speed & Audio Helpers */}
+        <div style={{ display: "flex", gap: "0.5rem" }}>
           <button
-            onClick={() =>
-              setPlaybackRate((prev) => (prev === 1.0 ? 0.8 : 1.0))
-            }
-            disabled={isRecording || isProcessing}
+            onClick={() => setPlaybackRate((prev) => (prev === 1.0 ? 0.8 : 1.0))}
             style={{
               width: 50,
               height: 50,
-              borderRadius: "50%",
-              border: "2px solid #e5e7eb",
-              backgroundColor: "white",
+              borderRadius: "15px",
+              background: playbackRate === 0.8 ? "var(--primary)" : "var(--glass)",
+              color: playbackRate === 0.8 ? "white" : "var(--primary)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              cursor: isRecording || isProcessing ? "not-allowed" : "pointer",
-              opacity: isRecording || isProcessing ? 0.5 : 1,
-              transition: "all 0.2s",
-              color: "var(--foreground)",
-              fontWeight: 600,
-              fontSize: "0.9rem",
+              fontSize: "0.85rem",
+              fontWeight: 800,
+              border: "2px solid var(--primary)"
             }}
           >
-            {playbackRate}x
+            {playbackRate === 1.0 ? "1x" : "0.8x"}
           </button>
-          <span style={{ fontSize: "0.75rem", color: "#6b7280" }}>语速</span>
-        </div>
 
-        {/* 1. Original Audio */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "0.5rem",
-          }}
-        >
           <button
             onClick={togglePlayOriginal}
             disabled={isRecording || isProcessing}
             style={{
               width: 50,
               height: 50,
-              borderRadius: "50%",
-              border: "2px solid #e5e7eb",
-              backgroundColor: isPlayingOriginal ? "#e5e7eb" : "white",
+              borderRadius: "15px",
+              background: isPlayingOriginal ? "var(--primary)" : "var(--glass)",
+              color: isPlayingOriginal ? "white" : "var(--primary)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              cursor: isRecording || isProcessing ? "not-allowed" : "pointer",
-              opacity: isRecording || isProcessing ? 0.5 : 1,
-              transition: "all 0.2s",
-              color: "var(--foreground)",
+              border: "2px solid var(--primary)"
             }}
           >
-            {isPlayingOriginal ? (
-              <Square size={20} fill="currentColor" />
-            ) : (
-              <Volume2 size={24} />
-            )}
+            {isPlayingOriginal ? <Square size={20} /> : <Volume2 size={24} />}
           </button>
-          <span style={{ fontSize: "0.75rem", color: "#6b7280" }}>原音</span>
         </div>
 
-        {/* 2. Prev Button */}
-        <div
+        {/* MIC MAIN ACTION */}
+        <button
+          onMouseDown={startRecording}
+          onMouseUp={stopRecording}
+          onTouchStart={startRecording}
+          onTouchEnd={stopRecording}
+          disabled={isProcessing || status === "SUCCESS"}
           style={{
+            width: "80px",
+            height: "80px",
+            borderRadius: "50%",
+            background: isRecording ? "#ef4444" : "var(--primary)",
+            color: "white",
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
-            gap: "0.5rem",
+            justifyContent: "center",
+            transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+            boxShadow: isRecording
+              ? "0 0 25px rgba(239, 68, 68, 0.6)"
+              : "0 10px 25px -5px rgba(99, 102, 241, 0.5)",
+            border: "4px solid white",
+            transform: isRecording ? "scale(1.15)" : "scale(1)",
+            opacity: isProcessing || status === "SUCCESS" ? 0.3 : 1
           }}
         >
-          <button
-            onClick={prevSentence}
-            disabled={currentSentenceIndex === 0 || isRecording || isProcessing}
-            style={{
-              width: 50,
-              height: 50,
-              borderRadius: "50%",
-              border: "2px solid #e5e7eb",
-              backgroundColor: "white",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor:
-                currentSentenceIndex === 0 || isRecording || isProcessing
-                  ? "not-allowed"
-                  : "pointer",
-              opacity:
-                currentSentenceIndex === 0 || isRecording || isProcessing
-                  ? 0.5
-                  : 1,
-              transition: "all 0.2s",
-              color: "var(--foreground)",
-            }}
-          >
-            <ArrowRight size={24} style={{ transform: "rotate(180deg)" }} />
-          </button>
-          <span style={{ fontSize: "0.75rem", color: "#6b7280" }}>上一个</span>
-        </div>
+          {isProcessing ? (
+            <Loader2 className="animate-spin" size={32} />
+          ) : isRecording ? (
+            <Square size={32} fill="white" />
+          ) : (
+            <Mic size={32} />
+          )}
+        </button>
 
-        {/* 3. Main Record Button */}
-        <div
+        {/* Played Recorded Audio */}
+        <button
+          onClick={togglePlayRecording}
+          disabled={!recordedAudio || isRecording || isProcessing}
           style={{
+            width: 50,
+            height: 50,
+            borderRadius: "15px",
+            background: isPlayingRecording ? "#10b981" : "var(--glass)",
+            color: isPlayingRecording ? "white" : "#10b981",
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
-            gap: "0.5rem",
+            justifyContent: "center",
+            border: "2px solid #10b981",
+            opacity: !recordedAudio ? 0.2 : 1
           }}
         >
-          <button
-            onClick={isRecording ? stopRecording : startRecording}
-            disabled={isProcessing}
-            className={clsx(isRecording && "animate-pulse")}
-            style={{
-              width: 80,
-              height: 80,
-              borderRadius: "50%",
-              background: isRecording
-                ? "#ef4444"
-                : isProcessing
-                  ? "#fbbf24"
-                  : "#3b82f6",
-              color: "white",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: isProcessing ? "wait" : "pointer",
-              boxShadow: "0 6px 20px rgba(59,130,246,0.4)",
-              border: "none",
-              transition: "all 0.2s",
-              opacity: isProcessing ? 0.7 : 1,
-            }}
-          >
-            {isProcessing ? (
-              <Loader2 size={36} className="animate-spin" />
-            ) : isRecording ? (
-              <Square size={32} fill="currentColor" />
-            ) : (
-              <Mic size={36} />
-            )}
-          </button>
-          <span style={{ fontSize: "0.75rem", color: "#6b7280" }}>
-            {isRecording ? "停止" : "录音"}
-          </span>
-        </div>
+          {isPlayingRecording ? <Square size={20} /> : <Play size={24} />}
+        </button>
 
-        {/* 4. Next Button */}
-        <div
+        {/* Next */}
+        <button
+          onClick={advanceSentence}
+          disabled={isRecording || isProcessing || (struggleItems.length > 3 && status !== "SUCCESS")}
+          className="btn-primary"
           style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "0.5rem",
+            width: 50,
+            height: 50,
+            padding: 0,
+            borderRadius: "15px",
+            background: status === "SUCCESS" ? "var(--success)" : "none",
+            border: "2px solid var(--border)",
+            color: status === "SUCCESS" ? "white" : "var(--foreground)",
+            boxShadow: "none",
+            opacity: isRecording || isProcessing || (struggleItems.length > 3 && status !== "SUCCESS") ? 0.3 : 1
           }}
         >
-          <button
-            onClick={advanceSentence}
-            disabled={
-              (currentSentenceIndex === sentences.length - 1 &&
-                chunks.length > 0 &&
-                false) ||
-              isRecording ||
-              isProcessing ||
-              struggleItems.length > 3 // Block if too many errors
-            }
-            style={{
-              width: 50,
-              height: 50,
-              borderRadius: "50%",
-              border: "2px solid #e5e7eb",
-              backgroundColor: "white",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: isRecording || isProcessing ? "not-allowed" : "pointer",
-              opacity: isRecording || isProcessing ? 0.5 : 1,
-              transition: "all 0.2s",
-              color: "var(--foreground)",
-            }}
-          >
-            <ArrowRight size={24} />
-          </button>
-          <span style={{ fontSize: "0.75rem", color: "#6b7280" }}>下一个</span>
-        </div>
-
-        {/* 5. Playback Recording */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "0.5rem",
-          }}
-        >
-          <button
-            onClick={togglePlayRecording}
-            disabled={!recordedAudio || isRecording || isProcessing}
-            style={{
-              width: 50,
-              height: 50,
-              borderRadius: "50%",
-              border: `2px solid ${isPlayingRecording ? "#ef4444" : "#10b981"}`,
-              backgroundColor: "white",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor:
-                !recordedAudio || isRecording || isProcessing
-                  ? "not-allowed"
-                  : "pointer",
-              opacity: !recordedAudio || isRecording || isProcessing ? 0.5 : 1,
-              transition: "all 0.2s",
-              color: isPlayingRecording ? "#ef4444" : "#10b981",
-            }}
-          >
-            {isPlayingRecording ? (
-              <Square size={20} fill="currentColor" />
-            ) : (
-              <Play size={24} />
-            )}
-          </button>
-          <span style={{ fontSize: "0.75rem", color: "#6b7280" }}>回放</span>
-        </div>
+          <ArrowRight size={24} />
+        </button>
       </div>
     </div>
   );

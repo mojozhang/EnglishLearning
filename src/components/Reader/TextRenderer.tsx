@@ -99,12 +99,15 @@ export default function TextRenderer({ text, translation }: TextRendererProps) {
     const showFullAtEnd = isMismatch && index === paragraphs.length - 1;
 
     return (
-      <div key={index} style={{ marginBottom: "2rem" }}>
+      <div key={index} style={{ marginBottom: "2.5rem" }} className="animate-slide-up">
         <div
           style={{
-            lineHeight: 2.8,
-            fontSize: "1.25rem",
+            lineHeight: 2.2,
+            fontSize: "1.35rem",
+            fontWeight: 400,
             whiteSpace: "pre-wrap",
+            color: "var(--foreground)",
+            letterSpacing: "-0.01em"
           }}
         >
           {tokens.map((token, idx) => {
@@ -113,7 +116,7 @@ export default function TextRenderer({ text, translation }: TextRendererProps) {
             const isSelected = isWord && vocabulary.includes(cleanWord);
             const definition = definitions[cleanWord];
 
-            if (!isWord) return <span key={idx}>{token}</span>;
+            if (!isWord) return <span key={idx} style={{ opacity: 0.8 }}>{token}</span>;
 
             return (
               <span
@@ -121,24 +124,28 @@ export default function TextRenderer({ text, translation }: TextRendererProps) {
                 style={{
                   position: "relative",
                   display: "inline-block",
-                  lineHeight: "1.2",
                 }}
               >
                 <span
                   onClick={() => handleWordClick(token)}
-                  className={clsx(
-                    "cursor-pointer transition-colors duration-200 rounded px-0.5",
-                    isSelected
-                      ? "bg-yellow-200 text-yellow-900 border-b-2 border-yellow-500"
-                      : "hover:bg-blue-100",
-                  )}
                   style={{
                     backgroundColor: isSelected
                       ? "var(--highlight)"
                       : "transparent",
-                    color: isSelected ? "#000" : "inherit",
+                    color: isSelected ? "#854d0e" : "inherit",
                     cursor: "pointer",
-                    fontWeight: isSelected ? "bold" : "normal",
+                    fontWeight: isSelected ? 700 : 450,
+                    padding: "0 0.2rem",
+                    borderRadius: "6px",
+                    transition: "all 0.2s",
+                    borderBottom: isSelected ? "2px solid #eab308" : "1px solid transparent",
+                    boxShadow: isSelected ? "0 4px 6px -1px rgba(234, 179, 8, 0.2)" : "none"
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) e.currentTarget.style.backgroundColor = "rgba(99, 102, 241, 0.1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) e.currentTarget.style.backgroundColor = "transparent";
                   }}
                   title={
                     isSelected ? definition || "加载中..." : "点击加入生词本"
@@ -153,16 +160,17 @@ export default function TextRenderer({ text, translation }: TextRendererProps) {
                       left: "50%",
                       transform: "translateX(-50%)",
                       top: "100%",
-                      marginTop: "4px",
-                      backgroundColor: "rgba(0,0,0,0.8)",
-                      color: "#fff",
-                      padding: "2px 6px",
-                      borderRadius: "4px",
-                      fontSize: "0.75rem",
+                      marginTop: "6px",
+                      backgroundColor: "var(--foreground)",
+                      color: "var(--background)",
+                      padding: "4px 10px",
+                      borderRadius: "8px",
+                      fontSize: "0.8rem",
+                      fontWeight: 600,
                       whiteSpace: "nowrap",
                       zIndex: 50,
                       pointerEvents: "none",
-                      boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                      boxShadow: "var(--shadow-lg)",
                     }}
                   >
                     {definition}
@@ -173,20 +181,23 @@ export default function TextRenderer({ text, translation }: TextRendererProps) {
           })}
         </div>
 
-        {/* Interleaved Translation (Only if counts match) */}
+        {/* Interleaved Translation */}
         {showInterleaved &&
           (cnParagraphs[index] ||
             (index === 0 && !cnParagraphs.length && translation)) && (
             <div
               style={{
-                marginTop: "0.75rem",
+                marginTop: "1rem",
                 color: "var(--secondary-foreground)",
-                fontSize: "1rem",
+                fontSize: "1.05rem",
                 lineHeight: "1.6",
-                backgroundColor: "var(--secondary)",
-                padding: "0.75rem",
-                borderRadius: "var(--radius)",
-                borderLeft: "4px solid var(--border)",
+                backgroundColor: "var(--glass)",
+                padding: "1rem 1.25rem",
+                borderRadius: "14px",
+                borderLeft: "5px solid var(--primary)",
+                boxShadow: "var(--shadow-sm)",
+                fontStyle: "italic",
+                opacity: 0.9
               }}
             >
               {cnParagraphs[index] || translation}
@@ -196,30 +207,33 @@ export default function TextRenderer({ text, translation }: TextRendererProps) {
         {/* Full Translation Block (Fallback for mismatch) */}
         {showFullAtEnd && translation && (
           <div
+            className="glass-card"
             style={{
-              marginTop: "1.5rem",
-              padding: "1rem",
-              backgroundColor: "#f8f9fa",
-              borderRadius: "8px",
-              borderLeft: "4px solid #f59e0b",
+              marginTop: "2rem",
+              padding: "1.5rem",
+              background: "rgba(245, 158, 11, 0.05)",
+              borderLeft: "5px solid var(--accent)",
             }}
           >
             <div
               style={{
-                fontWeight: 600,
-                marginBottom: "0.5rem",
-                color: "#b45309",
-                fontSize: "0.875rem",
+                fontWeight: 800,
+                marginBottom: "0.75rem",
+                color: "var(--accent)",
+                fontSize: "0.8rem",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em"
               }}
             >
-              参考译文 (自动合并)
+              参考译文 (自动对齐)
             </div>
             <div
               style={{
-                color: "var(--secondary-foreground)",
-                fontSize: "1rem",
+                color: "var(--foreground)",
+                fontSize: "1.05rem",
                 lineHeight: "1.6",
                 whiteSpace: "pre-wrap",
+                opacity: 0.9
               }}
             >
               {translation}

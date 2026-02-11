@@ -266,14 +266,26 @@ export default function FileUploader() {
 
   return (
     <div
+      className="glass-card animate-slide-up"
       style={{
-        border: "2px dashed var(--border)",
-        borderRadius: "var(--radius)",
-        padding: "3rem",
+        padding: "3.5rem 2rem",
         textAlign: "center",
         cursor: "pointer",
-        transition: "all 0.2s ease",
-        backgroundColor: "var(--secondary)",
+        transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+        backgroundColor: "var(--glass)",
+        position: "relative",
+        overflow: "hidden",
+        border: "2px dashed var(--primary)",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "scale(1.02)";
+        e.currentTarget.style.borderColor = "var(--accent)";
+        e.currentTarget.style.backgroundColor = "rgba(99, 102, 241, 0.05)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "scale(1)";
+        e.currentTarget.style.borderColor = "var(--primary)";
+        e.currentTarget.style.backgroundColor = "var(--glass)";
       }}
     >
       <label
@@ -298,26 +310,79 @@ export default function FileUploader() {
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: "1rem",
+            gap: "1.5rem",
           }}
         >
-          {isUploading ? (
-            <Loader2
-              className="animate-spin"
-              size={48}
-              color="var(--primary)"
-            />
-          ) : (
-            <Upload size={48} color="var(--primary)" />
+          <div style={{
+            position: "relative",
+            width: "80px",
+            height: "80px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)",
+            borderRadius: "24px",
+            boxShadow: "0 10px 25px -5px rgba(99, 102, 241, 0.4)",
+            color: "white",
+            marginBottom: "0.5rem"
+          }}>
+            {isUploading ? (
+              <Loader2 className="animate-spin" size={36} />
+            ) : (
+              <Upload size={36} />
+            )}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <h3 style={{
+              fontSize: "1.5rem",
+              fontWeight: 800,
+              color: "var(--foreground)",
+              letterSpacing: "-0.02em"
+            }}>
+              {isUploading ? "正在解析魔法书..." : "开始你的英文探险"}
+            </h3>
+            <p style={{
+              color: "var(--secondary-foreground)",
+              opacity: 0.8,
+              fontSize: "0.95rem",
+              maxWidth: "280px",
+              margin: "0 auto",
+              lineHeight: 1.5
+            }}>
+              {isUploading
+                ? "正在为您整理知识点，请稍候"
+                : "点击或将 PDF 拖到这里，开启高效学习之旅"}
+            </p>
+          </div>
+
+          {!isUploading && (
+            <div
+              className="btn-primary"
+              style={{
+                marginTop: "1rem",
+                padding: "0.8rem 2rem",
+                fontSize: "1rem"
+              }}
+            >
+              立即上传
+            </div>
           )}
-          <h3 style={{ fontSize: "1.25rem", fontWeight: 600 }}>
-            {isUploading ? "正在解析 PDF..." : "点击或拖拽 PDF 文件到这里"}
-          </h3>
-          <p style={{ color: "var(--secondary-foreground)", opacity: 0.7 }}>
-            支持标准文本 PDF 文件，不支持扫描版图片 PDF。
-          </p>
         </div>
       </label>
+
+      {/* Background Decorative Circles */}
+      <div style={{
+        position: "absolute",
+        top: "-20px",
+        right: "-20px",
+        width: "100px",
+        height: "100px",
+        background: "var(--primary)",
+        opacity: 0.05,
+        borderRadius: "50%",
+        zIndex: -1
+      }} />
     </div>
   );
 }
