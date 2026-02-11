@@ -124,19 +124,19 @@ export default function SpeechTrainer() {
 
         // 仅在Go之后更新文本
         if (silenceDuration > 500) {
-          const remaining = Math.ceil((4000 - silenceDuration) / 1000);
-          if (remaining > 0 && remaining < 4) {
+          const remaining = Math.ceil((6000 - silenceDuration) / 1000); // 匹配 6s
+          if (remaining > 0 && remaining < 6) {
             setFeedbackMsg(`静音检测: ${remaining}秒后停止...`);
           } else if (remaining <= 0) {
             setFeedbackMsg("正在停止...");
           } else {
             // 正常录音中
             setFeedbackMsg(
-              isSpeech ? "正在录音... (检测到人声)" : "正在录音...",
+              isSpeech ? "正在录音... (已捕捉声波)" : "正在录音...",
             );
           }
         } else {
-          setFeedbackMsg(isSpeech ? "正在录音... (检测到人声)" : "正在录音...");
+          setFeedbackMsg(isSpeech ? "正在录音... (已捕捉声波)" : "正在录音...");
         }
       };
 
