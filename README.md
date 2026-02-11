@@ -40,7 +40,15 @@ Optimized for non-native speakers, especially Chinese learners.
   - Click **Red Words**: Plays standard pronunciation **3 times** for drilling.
   - **Silence Detection (VAD)**: Auto-stops recording after 4 seconds of silence.
 
-### 📖 User Guide
+### � Recent Updates (V0.2)
+
+- **Smart PDF Parsing (V9)**: Now features intelligent header/footer filtering, hyphenation repair (e.g., "morn- ing" -> "morning"), and auto-cleaning of "Spaced Caps" titles.
+- **Parallel Translation**: Implemented concurrent paragraph translation to ensure perfect 1:1 English-Chinese alignment, solving previous text merging issues.
+- **Auto-Translation Trigger**: Translation now starts automatically upon page load, no manual "Retry" needed.
+- **Enhanced UI**: Speech Trainer now uses a high-contrast all-black text style for better readability, removing distracting background colors.
+- **Security**: Added JWT secret enforcement in production, API payload size limits (DoS protection), and password strength validation.
+
+### �📖 User Guide
 
 #### Phase 1: Reading (Input)
 
@@ -87,7 +95,7 @@ Optimized for non-native speakers, especially Chinese learners.
   - **Recognition**: Baidu Cloud Speech API (Node.js Proxy)
 - **Algorithms**: Levenshtein Distance, Soundex, Custom Phonetic Matching
 
-### 🚀 Recent Updates (V0.2)
+### 🚀 Getting Started
 
 #### Prerequisites
 
@@ -165,6 +173,14 @@ Optimized for non-native speakers, especially Chinese learners.
   - **点击绿色单词**: 播放标准发音 **1 次**。
   - **点击红色单词**: 播放标准发音 **3 次** (循环洗脑)，帮助纠音。
   - **静音检测 (VAD)**: 4 秒无声自动停止录音。
+
+### 🚀 最新更新 (V0.2)
+
+- **智能 PDF 解析 (V9)**: 新增智能页眉/页脚过滤，连字符修复（如 "morn- ing" -> "morning"），以及“间隔大写”标题的自动清洗。
+- **并行翻译**: 采用并发段落翻译技术，确保中英文段落 1:1 完美对齐，彻底解决之前的文本合并/错位问题。
+- **自动翻译触发**: 页面加载后自动开始翻译，无需手动点击“重试”。
+- **UI 体验升级**: 口语训练界面采用全黑高对比度文字风格，去除干扰背景色，专注阅读。
+- **安全加固**: 生产环境强制检查 JWT 密钥，增加 API 包大小限制（防 DoS），并强化了密码强度校验。
 
 ### 📖 使用指南
 
