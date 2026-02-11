@@ -29,7 +29,7 @@ export default function FileUploader() {
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       const pdf = await loadingTask.promise;
 
-      console.log(`[PDF] PARSER_V11_STRONG_RECONSTRUCT - Loaded: ${pdf.numPages} pages.`);
+      console.log(`[PDF] PARSER_V12_LIGATURE_HEAL - Loaded: ${pdf.numPages} pages.`);
 
       let allTextContent = "";
 
@@ -43,7 +43,16 @@ export default function FileUploader() {
         // Group by Y position and handle X-axis spacing to fix "split words"
         const lines: { y: number; items: { x: number; width: number; text: string }[] }[] = [];
         for (const item of items) {
-          let str = item.str.replace(/\u0000/g, "").trim();
+          // V12 LIGATURE MAPPING: Fixes common PDF joint characters
+          let str = item.str
+            .replace(/\uFB00/g, "ff")
+            .replace(/\uFB01/g, "fi")
+            .replace(/\uFB02/g, "fl")
+            .replace(/\uFB03/g, "ffi")
+            .replace(/\uFB04/g, "ffl")
+            .replace(/\u0000/g, "")
+            .trim();
+
           if (!str) continue;
 
           const y = item.transform[5];
