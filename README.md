@@ -87,7 +87,7 @@ Optimized for non-native speakers, especially Chinese learners.
   - **Recognition**: Baidu Cloud Speech API (Node.js Proxy)
 - **Algorithms**: Levenshtein Distance, Soundex, Custom Phonetic Matching
 
-### 🚀 Getting Started
+### 🚀 Recent Updates (V0.2)
 
 #### Prerequisites
 
