@@ -100,7 +100,7 @@ Optimized for non-native speakers, especially Chinese learners.
 #### Prerequisites
 
 - Node.js 18+
-- A Baidu Cloud API Key (for speech recognition)
+- A SiliconFlow API Key (for speech recognition)
 
 #### Installation
 
@@ -121,10 +121,8 @@ Optimized for non-native speakers, especially Chinese learners.
    Create a `.env.local` file in the root directory:
 
    ```env
-   # Baidu Speech API Credentials
-   BAIDU_APP_ID=your_app_id
-   BAIDU_API_KEY=your_api_key
-   BAIDU_SECRET_KEY=your_secret_key
+   # SiliconFlow Speech API Credentials
+   SILICONFLOW_API_KEY=your_api_key
    ```
 
 4. **Run Development Server**
@@ -234,7 +232,7 @@ Optimized for non-native speakers, especially Chinese learners.
 #### 前置要求
 
 - Node.js 18+
-- 百度云 API Key (用于语音识别)
+- SiliconFlow API Key (用于语音识别)
 
 #### 安装步骤
 
@@ -255,10 +253,8 @@ Optimized for non-native speakers, especially Chinese learners.
    在根目录创建 `.env.local` 文件：
 
    ```env
-   # 百度语音识别凭证
-   BAIDU_APP_ID=your_app_id
-   BAIDU_API_KEY=your_api_key
-   BAIDU_SECRET_KEY=your_secret_key
+   # SiliconFlow 语音识别凭证
+   SILICONFLOW_API_KEY=your_api_key
    ```
 
 4. **运行开发服务器**
