@@ -5,8 +5,9 @@ import { decrypt } from "@/lib/auth";
 // Get specific book
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   try {
     const session = request.cookies.get("session")?.value;
     if (!session) {
@@ -20,7 +21,7 @@ export async function GET(
 
     const book = await prisma.book.findFirst({
       where: {
-        id: params.id,
+        id: id,
         userId: payload.userId as string,
       },
     });
@@ -47,8 +48,9 @@ export async function GET(
 // Update book progress
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   try {
     const session = request.cookies.get("session")?.value;
     if (!session) {
@@ -64,7 +66,7 @@ export async function PUT(
       await request.json();
 
     console.log("更新书籍数据:", {
-      bookId: params.id,
+      bookId: id,
       progress,
       currentPhase,
       currentSentenceIndex,
@@ -80,7 +82,7 @@ export async function PUT(
 
     const book = await prisma.book.updateMany({
       where: {
-        id: params.id,
+        id: id,
         userId: payload.userId as string,
       },
       data: updateData,
@@ -104,8 +106,9 @@ export async function PUT(
 // Delete book
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   try {
     const session = request.cookies.get("session")?.value;
     if (!session) {
@@ -119,7 +122,7 @@ export async function DELETE(
 
     await prisma.book.deleteMany({
       where: {
-        id: params.id,
+        id: id,
         userId: payload.userId as string,
       },
     });
