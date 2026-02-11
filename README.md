@@ -40,15 +40,23 @@ Optimized for non-native speakers, especially Chinese learners.
   - Click **Red Words**: Plays standard pronunciation **3 times** for drilling.
   - **Silence Detection (VAD)**: Auto-stops recording after 4 seconds of silence.
 
-### � Recent Updates (V0.2)
+### 🚀 Recent Updates (V0.3)
 
-- **Smart PDF Parsing (V9)**: Now features intelligent header/footer filtering, hyphenation repair (e.g., "morn- ing" -> "morning"), and auto-cleaning of "Spaced Caps" titles.
-- **Parallel Translation**: Implemented concurrent paragraph translation to ensure perfect 1:1 English-Chinese alignment, solving previous text merging issues.
-- **Auto-Translation Trigger**: Translation now starts automatically upon page load, no manual "Retry" needed.
-- **Enhanced UI**: Speech Trainer now uses a high-contrast all-black text style for better readability, removing distracting background colors.
-- **Security**: Added JWT secret enforcement in production, API payload size limits (DoS protection), and password strength validation.
+- **UI/UX Overhaul (Vibrant Edition)**: 
+  - **Glassmorphism Design**: Applied a modern, frosted-glass aesthetic across all cards and containers.
+  - **Interactive Visuals**: Added animated background gradients and lively micro-interactions.
+  - **Premium Typography**: Integrated `Outfit` and `Plus Jakarta Sans` for a high-end reading experience.
+- **Chrome Mobile Deep Optimization**:
+  - **Responsive Layouts**: Headers and navigation elements now stack intelligently on small screens.
+  - **Floating Controller**: A fixed bottom console for the Speech Trainer provides effortless thumb-reach control for recording and playback on mobile.
+  - **Touch-Friendly Targets**: Optimized all buttons for high-precision touch interaction (`min-height: 44px+`).
+- **Ultimate PDF Parser (V14)**:
+  - **Suffix Healing**: Expertly repairs broken words (e.g., `ex pect` -> `expect`) common in PDF extraction.
+  - **Semantic Stitching**: Hard-coded fixes for tricky character mapping issues like `rm` -> `firm` and `ght` -> `flight`.
+  - **Brute-Force Cleanup**: Advanced PUA character filtering ensures zero garbage characters in the final text.
+- **Parallel Translation (V2)**: Optimized concurrent paragraph translation for perfect 1:1 English-Chinese alignment.
 
-### �📖 User Guide
+### 📖 User Guide
 
 #### Phase 1: Reading (Input)
 
@@ -172,13 +180,21 @@ Optimized for non-native speakers, especially Chinese learners.
   - **点击红色单词**: 播放标准发音 **3 次** (循环洗脑)，帮助纠音。
   - **静音检测 (VAD)**: 4 秒无声自动停止录音。
 
-### 🚀 最新更新 (V0.2)
+### 🚀 最新更新 (V0.3)
 
-- **智能 PDF 解析 (V9)**: 新增智能页眉/页脚过滤，连字符修复（如 "morn- ing" -> "morning"），以及“间隔大写”标题的自动清洗。
-- **并行翻译**: 采用并发段落翻译技术，确保中英文段落 1:1 完美对齐，彻底解决之前的文本合并/错位问题。
-- **自动翻译触发**: 页面加载后自动开始翻译，无需手动点击“重试”。
-- **UI 体验升级**: 口语训练界面采用全黑高对比度文字风格，去除干扰背景色，专注阅读。
-- **安全加固**: 生产环境强制检查 JWT 密钥，增加 API 包大小限制（防 DoS），并强化了密码强度校验。
+- **UI/UX 深度重绘 (全景活力版)**:
+  - **玻璃拟态设计**: 全站应用现代磨砂玻璃质感，视觉层次更丰富。
+  - **灵动动效**: 引入了动态流光背景与微交互，让学习不再枯燥。
+  - **高端排版**: 集成 `Outfit` 与 `Plus Jakarta Sans` 字体，媲美纸质书的阅读体验。
+- **Chrome 移动端深度适配**:
+  - **响应式布局**: 导航栏与头像在手机端自动堆叠，完美适配小屏。
+  - **浮动控制台**: 口语教练采用底部悬停中控台，单手即可轻松操作录音与放音。
+  - **触控优化**: 所有按钮针对手机触控进行了面积优化 (`min-height: 44px+`)。
+- **终极 PDF 解析算法 (V14)**:
+  - **后缀修复 (Suffix Healing)**: 完美修复 PDF 常见的顽固断词（如 `ex pect` -> `expect`）。
+  - **语义缝合**: 精准解决 `rm` 识别为 `firm`、`ght` 识别为 `flight` 等字符映射难题。
+  - **暴力清洗**: 通过 PUA 字符过滤，彻底杜绝所有乱码。
+- **并行翻译系统 (V2)**: 优化的并发段落翻译技术，确保中英段落 1:1 绝对对齐且加载飞速。
 
 ### 📖 使用指南
 
