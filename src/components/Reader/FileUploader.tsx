@@ -29,7 +29,7 @@ export default function FileUploader() {
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       const pdf = await loadingTask.promise;
 
-      console.log(`[PDF] PARSER_V13_PUA_SEMANTIC_HEAL - Loaded: ${pdf.numPages} pages.`);
+      console.log(`[PDF] PARSER_V14_FULL_RECONSTRUCT - Loaded: ${pdf.numPages} pages.`);
 
       let allTextContent = "";
 
@@ -116,14 +116,14 @@ export default function FileUploader() {
             if (spacedCapsPattern.test(line.text.trim())) {
               isHeaderFooter = true;
               console.log(
-                `[V11-DEBUG] Filtered Spaced Header: "${line.text}"`,
+                `[V14-DEBUG] Filtered Spaced Header: "${line.text}"`,
               );
             }
           }
 
           if (i === 1 && idx < 12) {
             console.log(
-              `[V11-DEBUG] P1 L${idx} (relY: ${relativeY.toFixed(3)}): "${line.text.substring(0, 50)}" ${isHeaderFooter ? "[FILTERED]" : "[KEPT]"}`,
+              `[V14-DEBUG] P1 L${idx} (relY: ${relativeY.toFixed(3)}): "${line.text.substring(0, 50)}" ${isHeaderFooter ? "[FILTERED]" : "[KEPT]"}`,
             );
           }
 
@@ -134,7 +134,7 @@ export default function FileUploader() {
       }
 
       // ============================================================
-      // STEP 3: V6 Refined Cleanup Pipeline
+      // STEP 3: V14 Final Cleanup Pipeline
       // ============================================================
       let fullText = allTextContent;
 
@@ -145,18 +145,25 @@ export default function FileUploader() {
       );
 
       // Phase 2: Fix explicit hyphenation (morn- ing)
-      // Enhanced Regex: Handles standard hyphen, wide range of unicode dashes, AND allows space before dash
-      // Matches: Letter + [Space?] + Hyphen + Space + Letter
       fullText = fullText.replace(
         /([a-zA-Z])\s*[-\u2010-\u2015\uFE58\uFE63\uFF0D]\s+([a-zA-Z])/g,
         "$1$2",
       );
 
-      // Phase 4: V13 Semantic Healing (Brute force fix for "rm" -> "firm" and similar)
+      // Phase 3: V14 REGained Suffix Healing (Heals "ex pect", "develop ment", etc.)
+      const suffixes = ["pect", "spect", "ing", "ment", "tion", "tive", "ness", "ship", "able", "ible", "full", "less", "ting", "ence", "ance"];
+      suffixes.forEach(suffix => {
+        // Broad Regex: Handle any letter followed by space and suffix fragment
+        const regex = new RegExp(`([a-zA-Z])\\s+(${suffix})`, "gi");
+        fullText = fullText.replace(regex, "$1$2");
+      });
+
+      // Phase 4: V14 Aggressive Semantic Healing
       const semanticFixes = [
+        { regex: /ex\s+pect/gi, replacement: "expect" },
         { regex: /\brm\b/g, replacement: "firm" },
-        { regex: /\bght\b/g, replacement: "flight" }, // In case fl is also missing
-        { regex: /\bclient\b/g, replacement: "efficient" } // Contextual examples
+        { regex: /\bght\b/g, replacement: "flight" },
+        { regex: /\bclient\b/g, replacement: "efficient" }
       ];
       semanticFixes.forEach(fix => {
         fullText = fullText.replace(fix.regex, fix.replacement);
@@ -165,7 +172,7 @@ export default function FileUploader() {
       // Phase 5: SAFE Whitespace normalization
       fullText = fullText.replace(/\s+/g, " ").trim();
 
-      console.log(`[PDF] V13 Sample: "${fullText.substring(0, 500)}..."`);
+      console.log(`[PDF] V14 Sample: "${fullText.substring(0, 500)}..."`);
 
       // ============================================================
       // STEP 4: Sentence Reconstruction
@@ -175,7 +182,7 @@ export default function FileUploader() {
         .map((s) => s.trim())
         .filter((s) => s.length > 10);
 
-      console.log(`[PDF] V13 Final Sentence Count: ${sentences.length}`);
+      console.log(`[PDF] V14 Final Sentence Count: ${sentences.length}`);
 
       // ============================================================
       // STEP 5: Generate chunks (9 sentences per chunk, 3 per paragraph)
