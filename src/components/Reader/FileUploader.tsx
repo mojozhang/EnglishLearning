@@ -29,7 +29,7 @@ export default function FileUploader() {
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       const pdf = await loadingTask.promise;
 
-      console.log(`[PDF] PARSER_V6_REFINED - Loaded: ${pdf.numPages} pages.`);
+      console.log(`[PDF] PARSER_V10_SMART_MERGE - Loaded: ${pdf.numPages} pages.`);
 
       let allTextContent = "";
 
@@ -40,24 +40,54 @@ export default function FileUploader() {
         const textContent = await page.getTextContent();
         const items = textContent.items as any[];
 
-        // Group by Y position (Tolerance 3 - Safe balance)
-        const lines: { y: number; text: string }[] = [];
+        // Group by Y position and handle X-axis spacing to fix "split words"
+        const lines: { y: number; items: { x: number; width: number; text: string }[] }[] = [];
         for (const item of items) {
-          // CRITICAL: Clean invisible NULL characters immediately
           let str = item.str.replace(/\u0000/g, "").trim();
           if (!str) continue;
 
           const y = item.transform[5];
-          // Reduced tolerance to 3 to prevent merging different text lines
+          const x = item.transform[4];
+          const width = item.width;
+
           let existingLine = lines.find((line) => Math.abs(line.y - y) < 3);
           if (existingLine) {
-            existingLine.text += " " + str;
+            existingLine.items.push({ x, width, text: str });
           } else {
-            lines.push({ y, text: str });
+            lines.push({ y, items: [{ x, width, text: str }] });
           }
         }
 
-        lines.sort((a, b) => b.y - a.y);
+        // Process each line to merge items based on X distance
+        const processedLines: { y: number; text: string }[] = lines.map(line => {
+          // Sort items on the same line from left to right
+          const sortedItems = line.items.sort((a, b) => a.x - b.x);
+          let mergedText = "";
+
+          for (let k = 0; k < sortedItems.length; k++) {
+            const curr = sortedItems[k];
+            if (k === 0) {
+              mergedText = curr.text;
+            } else {
+              const prev = sortedItems[k - 1];
+              // V10 SMART MERGE: Calculate gap
+              // We use height (usually transform[0] or transform[3]) as a reference for "font size"
+              // but for simplicity and safety, we check if gap is visually tiny
+              const gap = curr.x - (prev.x + prev.width);
+
+              // If gap is less than a small threshold (e.g., 1.5 units or 12% of typical char width), 
+              // we treat it as the same word.
+              if (gap < 2) {
+                mergedText += curr.text;
+              } else {
+                mergedText += " " + curr.text;
+              }
+            }
+          }
+          return { y: line.y, text: mergedText };
+        });
+
+        processedLines.sort((a, b) => b.y - a.y);
 
         // Filter out headers/footers based on relative position and patterns
         const bodyOnly = lines.filter((line, idx) => {
@@ -84,7 +114,7 @@ export default function FileUploader() {
 
           if (i === 1 && idx < 12) {
             console.log(
-              `[V8-DEBUG] P1 L${idx} (relY: ${relativeY.toFixed(3)}): "${line.text.substring(0, 50)}" ${isHeaderFooter ? "[FILTERED]" : "[KEPT]"}`,
+              `[V10-DEBUG] P1 L${idx} (relY: ${relativeY.toFixed(3)}): "${line.text.substring(0, 50)}" ${isHeaderFooter ? "[FILTERED]" : "[KEPT]"}`,
             );
           }
 
