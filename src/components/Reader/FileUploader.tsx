@@ -29,7 +29,7 @@ export default function FileUploader() {
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       const pdf = await loadingTask.promise;
 
-      console.log(`[PDF] PARSER_V10_SMART_MERGE - Loaded: ${pdf.numPages} pages.`);
+      console.log(`[PDF] PARSER_V11_STRONG_RECONSTRUCT - Loaded: ${pdf.numPages} pages.`);
 
       let allTextContent = "";
 
@@ -70,14 +70,11 @@ export default function FileUploader() {
               mergedText = curr.text;
             } else {
               const prev = sortedItems[k - 1];
-              // V10 SMART MERGE: Calculate gap
-              // We use height (usually transform[0] or transform[3]) as a reference for "font size"
-              // but for simplicity and safety, we check if gap is visually tiny
+              // V11 STRONG MERGE: Calculate gap
+              // Increased threshold to 5 to handle wider character spaces
               const gap = curr.x - (prev.x + prev.width);
 
-              // If gap is less than a small threshold (e.g., 1.5 units or 12% of typical char width), 
-              // we treat it as the same word.
-              if (gap < 2) {
+              if (gap < 5) {
                 mergedText += curr.text;
               } else {
                 mergedText += " " + curr.text;
@@ -107,14 +104,14 @@ export default function FileUploader() {
             if (spacedCapsPattern.test(line.text.trim())) {
               isHeaderFooter = true;
               console.log(
-                `[V8-DEBUG] Filtered Spaced Header (with Page Num?): "${line.text}"`,
+                `[V11-DEBUG] Filtered Spaced Header: "${line.text}"`,
               );
             }
           }
 
           if (i === 1 && idx < 12) {
             console.log(
-              `[V10-DEBUG] P1 L${idx} (relY: ${relativeY.toFixed(3)}): "${line.text.substring(0, 50)}" ${isHeaderFooter ? "[FILTERED]" : "[KEPT]"}`,
+              `[V11-DEBUG] P1 L${idx} (relY: ${relativeY.toFixed(3)}): "${line.text.substring(0, 50)}" ${isHeaderFooter ? "[FILTERED]" : "[KEPT]"}`,
             );
           }
 
@@ -143,10 +140,18 @@ export default function FileUploader() {
         "$1$2",
       );
 
-      // Phase 3: SAFE Whitespace normalization
+      // Phase 3: V11 Suffix Healing (Heals "ex pect", "develop ment", etc.)
+      const suffixes = ["pect", "spect", "ing", "ment", "tion", "tive", "ness", "ship", "able", "ible", "full", "less", "ting", "ness", "tion", "ence", "ance"];
+      suffixes.forEach(suffix => {
+        // Regex: (Letter) + Space + (Target Suffix)
+        const regex = new RegExp(`([a-zA-Z])\\s+(${suffix})\\b`, "gi");
+        fullText = fullText.replace(regex, "$1$2");
+      });
+
+      // Phase 4: SAFE Whitespace normalization
       fullText = fullText.replace(/\s+/g, " ").trim();
 
-      console.log(`[PDF] V6 Sample: "${fullText.substring(0, 500)}..."`);
+      console.log(`[PDF] V11 Sample: "${fullText.substring(0, 500)}..."`);
 
       // ============================================================
       // STEP 4: Sentence Reconstruction
@@ -156,7 +161,7 @@ export default function FileUploader() {
         .map((s) => s.trim())
         .filter((s) => s.length > 10);
 
-      console.log(`[PDF] V6 Final Sentence Count: ${sentences.length}`);
+      console.log(`[PDF] V11 Final Sentence Count: ${sentences.length}`);
 
       // ============================================================
       // STEP 5: Generate chunks (9 sentences per chunk, 3 per paragraph)
