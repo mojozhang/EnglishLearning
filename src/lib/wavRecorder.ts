@@ -22,8 +22,8 @@ export class WAVRecorder {
     | null = null;
 
   private silenceStartTime: number | null = null;
-  private readonly SPEECH_THRESHOLD = 0.015; // 人声阈值 (更灵敏，从0.03降低)
-  private readonly SILENCE_DURATION = 6000; // 6秒 (更宽容，从4000延时)
+  private readonly SPEECH_THRESHOLD = 0.03; // 人声阈值 (简单RMS)
+  private readonly SILENCE_DURATION = 4000; // 4秒
 
   async start(stream: MediaStream) {
     this.audioContext = new AudioContext({ sampleRate: 16000 });

@@ -111,29 +111,34 @@ export default function SpeechTrainer() {
       // 使用WAV录音器
       const recorder = new WAVRecorder();
 
-      // 设置静音回调 (4秒无声自动停止)
+      // 设置静音回调 (6秒无声自动停止)
       recorder.onSilence = () => {
-        console.log("检测到静音，自动停止录音");
-        stopRecording();
+        // 关键修复：只有在正式开始录音(Go之后)才允许自动停止
+        if (isRecordingRef.current) {
+          console.log("检测到静音，自动停止录音");
+          stopRecording();
+        } else {
+          console.log("处于Ready阶段，忽略静音信号");
+        }
       };
 
       // 更新UI显示倒计时
       recorder.onVADStateChange = (rms, isSpeech, silenceDuration) => {
         // 使用Ref来检查录音状态，避免闭包问题
-        if (!isRecordingRef.current) return;
+        if (!isRecordingRef.current) {
+          // 在Ready阶段，不断重置静音起始时间，防止计时器提前跑
+          // 虽然底层库在计算，但我们在这里反馈中立状态
+          return;
+        }
 
-        // 仅在Go之后更新文本
         if (silenceDuration > 500) {
-          const remaining = Math.ceil((6000 - silenceDuration) / 1000); // 匹配 6s
+          const remaining = Math.ceil((6000 - silenceDuration) / 1000);
           if (remaining > 0 && remaining < 6) {
             setFeedbackMsg(`静音检测: ${remaining}秒后停止...`);
           } else if (remaining <= 0) {
             setFeedbackMsg("正在停止...");
           } else {
-            // 正常录音中
-            setFeedbackMsg(
-              isSpeech ? "正在录音... (已捕捉声波)" : "正在录音...",
-            );
+            setFeedbackMsg(isSpeech ? "正在录音... (已捕捉声波)" : "正在录音...");
           }
         } else {
           setFeedbackMsg(isSpeech ? "正在录音... (已捕捉声波)" : "正在录音...");
