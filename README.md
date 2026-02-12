@@ -40,7 +40,19 @@ Optimized for non-native speakers, especially Chinese learners.
   - Click **Red Words**: Plays standard pronunciation **3 times** for drilling.
   - **Silence Detection (VAD)**: Auto-stops recording after 4 seconds of silence.
 
-### 🚀 Recent Updates (V0.3)
+### 🚀 Recent Updates (V0.7.0)
+
+- **🔥 Critical Bug Fixes (核心修复)**:
+  - **Smart Abbreviation Handling**: Fixed an issue where abbreviations like "Mr." or "Mrs." caused incorrect sentence splitting.
+  - **Number Mismatch Fix**: The speech trainer now intelligently maps words to digits (e.g., "eight" matches "8"), solving a major frustration.
+  - **PDF Parsing V15**: Resolved text loss issues at page headers/footers and fixed split words like "ex perience" -> "experience".
+- **💎 UX Polish (体验提升)**:
+  - **Rock-Solid Control Bar**: The speech trainer's bottom control bar is now visually locked and flicker-free, regardless of content changes.
+  - **Noise Cancellation (VAD)**: Tuned the voice activity detection threshold to ignore coughs and background noise—recording only starts when you speak.
+  - **Progress Reset**: Fixed a bug where speech training progress persisted incorrectly when switching chapters.
+- **☁️ Deployment**: Added comprehensive guides for deploying to Netlify and migrating to cloud PostgreSQL.
+
+### 📜 Previous Updates (V0.3)
 
 - **UI/UX Overhaul (Vibrant Edition)**: 
   - **Glassmorphism Design**: Applied a modern, frosted-glass aesthetic across all cards and containers.
@@ -180,7 +192,19 @@ Optimized for non-native speakers, especially Chinese learners.
   - **点击红色单词**: 播放标准发音 **3 次** (循环洗脑)，帮助纠音。
   - **静音检测 (VAD)**: 4 秒无声自动停止录音。
 
-### 🚀 最新更新 (V0.3)
+### 🚀 最新更新 (V0.7.0)
+
+- **🔥 核心修复 (Critical Fixes)**:
+  - **智能缩写处理**: 修复了 "Mr.", "Mrs." 等缩写词导致句子被错误切断的问题。
+  - **数字识别优化**: 语音教练现在支持数字与单词的智能互通（例如读 "eight" 能匹配原文的 "8"）。
+  - **PDF 解析 V15**: 彻底解决了页眉页脚文本丢失问题，并自动修复了 "ex perience" 等单词断裂的 Bug。
+- **💎 体验提升 (UX Polish)**:
+  - **控制栏定海神针**: 口语训练底部的控制栏现在绝对固定，无论内容如何变化都纹丝不动，杜绝跳动。
+  - **抗噪升级 (VAD)**: 调高了录音门槛，系统现在能自动忽略咳嗽声和背景噪音，只在您开口时触发。
+  - **进度自动重置**: 修复了切换章节时，口语训练进度条没有归零的 Bug。
+- **☁️ 部署准备**: 新增了 Netlify 部署指南与 PostgreSQL 数据库迁移文档。
+
+### 📜 历史更新 (V0.3)
 
 - **UI/UX 深度重绘 (全景活力版)**:
   - **玻璃拟态设计**: 全站应用现代磨砂玻璃质感，视觉层次更丰富。
