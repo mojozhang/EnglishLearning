@@ -102,8 +102,8 @@ export default function FileUploader() {
         const bodyOnly = processedLines.filter((line, idx) => {
           const relativeY = 1 - line.y / pageHeight;
 
-          // 1. Position-based filtering: Cut top 15% and bottom 15%
-          let isHeaderFooter = relativeY < 0.15 || relativeY > 0.85;
+          // 1. Position-based filtering: Cut top 5% and bottom 5% (Was 15%, causing text loss)
+          let isHeaderFooter = relativeY < 0.05 || relativeY > 0.95;
 
           // 2. Pattern-based filtering for "Spaced Caps" titles usually found at top
           // Example: "T H E  B O Y" -> Single char + spaces pattern
@@ -161,6 +161,8 @@ export default function FileUploader() {
       // Phase 4: V14 Aggressive Semantic Healing
       const semanticFixes = [
         { regex: /ex\s+pect/gi, replacement: "expect" },
+        { regex: /ex\s+perience/gi, replacement: "experience" }, // Fix for "ex perience"
+        { regex: /ex\s+plore/gi, replacement: "explore" }, // Safe: plore is not a word
         { regex: /\brm\b/g, replacement: "firm" },
         { regex: /\bght\b/g, replacement: "flight" },
         { regex: /\bclient\b/g, replacement: "efficient" }
@@ -177,9 +179,27 @@ export default function FileUploader() {
       // ============================================================
       // STEP 4: Sentence Reconstruction
       // ============================================================
-      const rawSentences = fullText.split(/(?<=\.)\s+/);
+      // ============================================================
+      // STEP 4: Sentence Reconstruction with Abbreviation Protection
+      // ============================================================
+      // 1. Protect common abbreviations (Mr., Mrs., etc.) to prevent false splits
+      let protectedText = fullText
+        .replace(/\b(Mr)\./g, "Mr###")
+        .replace(/\b(Mrs)\./g, "Mrs###")
+        .replace(/\b(Ms)\./g, "Ms###")
+        .replace(/\b(Dr)\./g, "Dr###")
+        .replace(/\b(Prof)\./g, "Prof###")
+        .replace(/\b(Sr)\./g, "Sr###")
+        .replace(/\b(Jr)\./g, "Jr###")
+        .replace(/\b(St)\./g, "St###"); // St. Paul
+
+      // 2. Split by punctuation followed by space
+      // Lookbehind (?<=[.!?]) ensures the punctuation is kept with the sentence
+      const rawSentences = protectedText.split(/(?<=[.!?])\s+/);
+
+      // 3. Restore and filter
       const sentences = rawSentences
-        .map((s) => s.trim())
+        .map((s) => s.replace(/###/g, ".").trim())
         .filter((s) => s.length > 10);
 
       console.log(`[PDF] V14 Final Sentence Count: ${sentences.length}`);

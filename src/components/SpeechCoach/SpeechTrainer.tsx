@@ -23,7 +23,29 @@ export default function SpeechTrainer() {
   const currentChunkText = chunks[currentChunkIndex]?.en || "";
   const sentences = useMemo(() => {
     if (!currentChunkText) return [];
-    return currentChunkText.match(/[^.!?]+[.!?]+/g) || [currentChunkText];
+    // Force Custom Logic: Intl.Segmenter varies by browser and might split abbreviations incorrectly.
+    // We use a robust "Protect-Split-Restore" strategy to guarantee consistency.
+
+    // 1. Protect Abbreviations
+    let tempText = currentChunkText
+      .replace(/\b(Mr)\./g, "Mr###")
+      .replace(/\b(Mrs)\./g, "Mrs###")
+      .replace(/\b(Ms)\./g, "Ms###")
+      .replace(/\b(Dr)\./g, "Dr###")
+      .replace(/\b(Prof)\./g, "Prof###")
+      .replace(/\b(Sr)\./g, "Sr###")
+      .replace(/\b(Jr)\./g, "Jr###")
+      .replace(/\b(St)\./g, "St###");
+
+    // 2. Split by Punctuation
+    // Matches sequence of non-punctuation followed by punctuation and optional quotes/brackets
+    const matches =
+      tempText.match(/[^.!?]+[.!?]+['"”’)]*/g) || [tempText];
+
+    // 3. Restore and Filter
+    return matches
+      .map(s => s.replace(/###/g, "."))
+      .filter((s) => s.trim().length > 0);
   }, [currentChunkText]);
 
   const [isRecording, setIsRecording] = useState(false);
@@ -48,12 +70,15 @@ export default function SpeechTrainer() {
 
   const targetWords = useMemo(() => {
     const s = sentences[currentSentenceIndex] || "";
-    // Replace punctuation including em-dash and en-dash
+    // Split by spaces, preserving punctuation in display
     return s
-      .replace(/[.,!?;:"()]/g, " ")
-      .replace(/[-—–]/g, " ")
+      .trim()
       .split(/\s+/)
-      .filter((w) => w.length > 0);
+      .filter((w: string) => w.length > 0)
+      .map((w: string) => ({
+        display: w,
+        clean: w.replace(/[.,!?;:"()]/g, "").replace(/[-—–]/g, "").toLowerCase(),
+      }));
   }, [sentences, currentSentenceIndex]);
 
   const [isPlayingOriginal, setIsPlayingOriginal] = useState(false);
@@ -61,6 +86,17 @@ export default function SpeechTrainer() {
   const [playbackRate, setPlaybackRate] = useState(1.0); // 0.8 or 1.0
   const [sentenceTranslation, setSentenceTranslation] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const recordingTimerRef = useRef<any>(null); // 用于清理 Ready 阶段的 1.5s 计时器
+  const isBusyRef = useRef(false); // 同步原子锁，防止事件穿透导致的重入
+
+  // Cleanup for recording timer
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) {
+        clearTimeout(recordingTimerRef.current);
+      }
+    };
+  }, []);
 
   // Fetch translation for current sentence
   useEffect(() => {
@@ -87,6 +123,23 @@ export default function SpeechTrainer() {
 
   // ==================== 录音功能 ====================
   const startRecording = async () => {
+
+    // 原子锁检查：同步拦截任何正在进行的任务
+    if (isBusyRef.current) {
+      console.log("原子锁激活：拦截启动信号");
+      return;
+    }
+
+    // 重入锁 (React 状态双重检查)
+    if (isProcessing || status === "PROCESSING" || status === "SUCCESS") {
+      console.log("状态锁激活：拦截启动信号");
+      return;
+    }
+
+    // 立即加锁
+    isBusyRef.current = true;
+    console.log("录音会话开始，已加锁");
+
     try {
       // Stop any playing audio
       stopPlayingOriginal();
@@ -111,14 +164,14 @@ export default function SpeechTrainer() {
       // 使用WAV录音器
       const recorder = new WAVRecorder();
 
-      // 设置静音回调 (6秒无声自动停止)
+      // 设置静音回调 (4秒无声自动停止)
       recorder.onSilence = () => {
-        // 关键修复：只有在正式开始录音(Go之后)才允许自动停止
+        // 关键修复：传入当前的 recorder 实例进行校验，防止旧回调关闭新录音
         if (isRecordingRef.current) {
-          console.log("检测到静音，自动停止录音");
-          stopRecording();
+          console.log("检测到静音，尝试自动停止录音...");
+          stopRecording(recorder);
         } else {
-          console.log("处于Ready阶段，忽略静音信号");
+          console.log("处于Ready阶段或已停止，忽略静音信号");
         }
       };
 
@@ -132,8 +185,8 @@ export default function SpeechTrainer() {
         }
 
         if (silenceDuration > 500) {
-          const remaining = Math.ceil((6000 - silenceDuration) / 1000);
-          if (remaining > 0 && remaining < 6) {
+          const remaining = Math.ceil((4000 - silenceDuration) / 1000);
+          if (remaining > 0 && remaining < 4) {
             setFeedbackMsg(`静音检测: ${remaining}秒后停止...`);
           } else if (remaining <= 0) {
             setFeedbackMsg("正在停止...");
@@ -149,32 +202,70 @@ export default function SpeechTrainer() {
       wavRecorderRef.current = recorder;
 
       // 等待录音器完全就绪（1.5秒）
-      setTimeout(() => {
+      recordingTimerRef.current = setTimeout(() => {
         setIsRecording(true);
         isRecordingRef.current = true; // 更新Ref
         setFeedbackMsg("Go! 正在录音...");
+        recordingTimerRef.current = null;
       }, 1500);
     } catch (e) {
       console.error(e);
       setFeedbackMsg("麦克风错误");
       setIsRecording(false);
       isRecordingRef.current = false;
+      isBusyRef.current = false; // 报错即解锁
     }
   };
 
-  const stopRecording = () => {
-    if (wavRecorderRef.current && isRecordingRef.current) {
-      const wavBlob = wavRecorderRef.current.stop();
+  const stopRecording = (targetRecorder?: WAVRecorder) => {
+
+    // 实例验证：如果传入了 targetRecorder (来自 VAD 回调)，必须与当前 ref 中的实例一致才准许停止
+    // 这能有效防止“过期回调”误杀新进程
+    if (
+      targetRecorder &&
+      wavRecorderRef.current &&
+      targetRecorder !== wavRecorderRef.current
+    ) {
+      console.log("收到过期停止信号，已拦截");
+      return;
+    }
+
+    // 关键修复：立即清理计时器，防止 Ready 阶段点击停止后又“自动启动”
+    if (recordingTimerRef.current) {
+      clearTimeout(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+
+    if (wavRecorderRef.current) {
+      const activeRecorder = wavRecorderRef.current;
+      const wasRecording = isRecordingRef.current;
+
+      // 注意：这里暂时不要重置 isBusyRef，因为停止后马上进入了 PROCESSING 阶段
+      // 只有在流程彻底结束（processRecording 结束或 Error）时才释放
+
+      const wavBlob = activeRecorder.stop();
+
+      // 彻底清理引用
+      wavRecorderRef.current = null;
       setIsRecording(false);
       isRecordingRef.current = false; // 更新Ref
       mediaStream?.getTracks().forEach((t) => t.stop());
       setMediaStream(null);
 
-      // 保存录音以供回放
-      setRecordedAudio(wavBlob);
-
-      // 处理WAV文件
-      processRecording(wavBlob);
+      // 如果是在正式录音阶段停止的，才进行处理
+      if (wasRecording) {
+        setRecordedAudio(wavBlob);
+        processRecording(wavBlob);
+      } else {
+        // 在 Ready 阶段被中断，回到 IDLE 并释放锁
+        isBusyRef.current = false;
+        console.log("Ready阶段取消，已释放锁");
+        setStatus("IDLE");
+        setFeedbackMsg("已取消录音");
+      }
+    } else {
+      // 没有任何实例可停止，但也需要解锁
+      isBusyRef.current = false;
     }
   };
 
@@ -238,6 +329,8 @@ export default function SpeechTrainer() {
       setStatus("IDLE");
     } finally {
       setIsProcessing(false);
+      isBusyRef.current = false; // 终极释放锁：处理流程（无论成败）彻底结束
+      console.log("录音处理流程结束，已释放锁");
     }
   };
 
@@ -256,7 +349,7 @@ export default function SpeechTrainer() {
       "ah",
       "hmm",
       "er",
-      "like",
+      // "like", // Removed: "like" is a common word in target text
       "so",
       "you know",
     ];
@@ -294,18 +387,25 @@ export default function SpeechTrainer() {
         const tWord = targetWords[i - 1];
         const sWord = spokenWords[j - 1]; // Spoken is already lowercase
 
-        const tClean = normalize(tWord.toLowerCase());
+        const tClean = normalize(tWord.clean);
         const sClean = normalize(sWord);
 
-        const isProperNoun = /^[A-Z]/.test(tWord);
+        const isProperNoun = /^[A-Z]/.test(tWord.display);
         const lenDiff = Math.abs(tClean.length - sClean.length);
         const firstLetterMatch = tClean[0] === sClean[0];
 
         let matchScore = -5; // Default mismatch
 
         // --- Match Scoring Logic ---
-        if (tClean === sClean) {
-          matchScore = 15; // Exact match
+        const numberMap: Record<string, string> = {
+          "zero": "0", "one": "1", "two": "2", "three": "3", "four": "4",
+          "five": "5", "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10"
+        };
+        const tNorm = numberMap[tClean] || tClean;
+        const sNorm = numberMap[sClean] || sClean;
+
+        if (tClean === sClean || tNorm === sNorm) {
+          matchScore = 15; // Exact match or Number match
         } else if (
           tClean === "a" &&
           ["a", "an", "one", "ei", "uh", "ah"].includes(sClean)
@@ -348,17 +448,24 @@ export default function SpeechTrainer() {
 
         const tWord = targetWords[i - 1];
         const sWord = spokenWords[j - 1];
-        const tClean = normalize(tWord.toLowerCase());
+        const tClean = normalize(tWord.clean);
         const sClean = normalize(sWord);
 
-        const isProperNoun = /^[A-Z]/.test(tWord);
+        const isProperNoun = /^[A-Z]/.test(tWord.display);
         const lenDiff = Math.abs(tClean.length - sClean.length);
         const firstLetterMatch = tClean[0] === sClean[0];
 
         let isGoodMatch = false;
 
         // --- Validation Logic (MUST SYNC WITH SCORING) ---
-        if (tClean === sClean) isGoodMatch = true;
+        const numberMap: Record<string, string> = {
+          "zero": "0", "one": "1", "two": "2", "three": "3", "four": "4",
+          "five": "5", "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10"
+        };
+        const tNorm = numberMap[tClean] || tClean;
+        const sNorm = numberMap[sClean] || sClean;
+
+        if (tClean === sClean || tNorm === sNorm) isGoodMatch = true;
         else if (
           tClean === "a" &&
           ["a", "an", "uh", "ah", "one", "er", "ei"].includes(sClean)
@@ -396,7 +503,7 @@ export default function SpeechTrainer() {
     for (let k = 0; k < n; k++) {
       if (!matchedIndices.has(k)) {
         newStruggles.push({
-          word: targetWords[k],
+          word: targetWords[k].clean, // Use clean text for correct matching in render loop
           type: "wrong",
           timestamp: Date.now(),
         });
@@ -586,14 +693,14 @@ export default function SpeechTrainer() {
   // ==================== 渲染 ====================
   if (!chunks.length) return <div>没有文本</div>;
 
-  const renderedText = targetWords.map((word, idx) => {
+  const renderedText = targetWords.map((item: { display: string; clean: string }, idx: number) => {
     let color = "black";
     let bg = "transparent";
     let icon = "";
 
-    // 检查是否是错误单词
+    // 检查是否是错误单词 (compare against clean text)
     const isWrong = struggleItems.some(
-      (item) => item.word.toLowerCase() === word.toLowerCase(),
+      (struggle) => struggle.word.toLowerCase() === item.clean,
     );
 
     if (idx < cursor) {
@@ -614,12 +721,12 @@ export default function SpeechTrainer() {
     return (
       <span
         key={idx}
-        onClick={() => playWord(word, isWrong ? 3 : 1)}
+        onClick={() => playWord(item.display, isWrong ? 3 : 1)}
         style={{
           color,
           backgroundColor: bg,
-          padding: "2px 6px",
-          margin: "0 2px",
+          padding: "2px 2px", // 稍微减少左右内边距，因为标点自带间隙
+          margin: "0 1px",
           borderRadius: 4,
           transition: "all 0.2s",
           display: "inline-block",
@@ -629,161 +736,145 @@ export default function SpeechTrainer() {
         }}
         title="点击发音"
       >
-        {word}
+        {item.display}
         {icon}
       </span>
     );
   });
 
   return (
-    <div
-      className="animate-slide-up"
-      style={{
-        maxWidth: "960px",
-        margin: "0 auto",
-        textAlign: "center",
-        height: "100%",
-        paddingBottom: "180px",
-        paddingLeft: "1rem",
-        paddingRight: "1rem"
-      }}
-    >
+    <>
       <div
+        className="animate-slide-up"
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "0.5rem",
-          color: "var(--secondary-foreground)",
-          fontSize: "0.85rem",
-          fontWeight: 700,
-          marginBottom: "1rem",
-          marginTop: "1rem",
-          textTransform: "uppercase",
-          opacity: 0.6
+          maxWidth: "960px",
+          margin: "0 auto",
+          textAlign: "center",
+          height: "100%",
+          paddingBottom: "180px",
+          paddingLeft: "1rem",
+          paddingRight: "1rem"
         }}
       >
-        <div style={{ width: "20px", height: "1px", background: "currentColor" }} />
-        <span>进度 {currentSentenceIndex + 1} / {sentences.length}</span>
-        <div style={{ width: "20px", height: "1px", background: "currentColor" }} />
-      </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "0.5rem",
+            color: "var(--secondary-foreground)",
+            fontSize: "0.85rem",
+            fontWeight: 700,
+            marginBottom: "1rem",
+            marginTop: "1rem",
+            textTransform: "uppercase",
+            opacity: 0.6
+          }}
+        >
+          <div style={{ width: "20px", height: "1px", background: "currentColor" }} />
+          <span>进度 {currentSentenceIndex + 1} / {sentences.length}</span>
+          <div style={{ width: "20px", height: "1px", background: "currentColor" }} />
+        </div>
 
-      {/* Translation Display */}
-      <div
-        className="glass-card"
-        style={{
-          marginBottom: "1.5rem",
-          color: "var(--primary)",
-          fontSize: "1.1rem",
-          fontWeight: 600,
-          background: "rgba(99, 102, 241, 0.05)",
-          padding: "1rem 1.5rem",
-          borderLeft: "5px solid var(--primary)",
-          borderRadius: "14px",
-          fontStyle: "italic",
-          opacity: 0.9,
-          textAlign: "left"
-        }}
-      >
-        {sentenceTranslation}
-      </div>
-
-      <div
-        className="glass-card"
-        style={{
-          padding: "2.5rem 1.5rem",
-          border: isRecording
-            ? "3px solid #ef4444"
-            : isProcessing
-              ? "3px solid #f59e0b"
-              : "2px solid var(--border)",
-          backgroundColor: "var(--secondary)",
-          fontSize: "1.75rem",
-          fontWeight: 700,
-          lineHeight: 1.8,
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "0.4rem",
-          justifyContent: "center",
-          boxShadow: isRecording ? "0 0 30px rgba(239, 68, 68, 0.2)" : "var(--shadow)",
-          minHeight: "260px",
-          alignItems: "center",
-          transition: "all 0.3s ease",
-          letterSpacing: "-0.02em"
-        }}
-      >
-        {renderedText}
-      </div>
-
-      {recognizedText && (
+        {/* Translation Display */}
         <div
           className="glass-card"
           style={{
-            marginTop: "1.5rem",
-            padding: "1.25rem",
-            background: "rgba(0,0,0,0.03)",
-            fontSize: "0.95rem",
-            color: "var(--foreground)",
-            borderStyle: "dashed",
-            opacity: 0.8
+            marginBottom: "1.5rem",
+            color: "var(--primary)",
+            fontSize: "1.1rem",
+            fontWeight: 600,
+            background: "rgba(99, 102, 241, 0.05)",
+            padding: "1rem 1.5rem",
+            borderLeft: "5px solid var(--primary)",
+            borderRadius: "14px",
+            fontStyle: "italic",
+            opacity: 0.9,
+            textAlign: "left"
           }}
         >
-          <strong style={{ color: "var(--primary)", marginRight: "0.5rem" }}>识别结果：</strong>
-          {recognizedText}
+          {sentenceTranslation}
         </div>
-      )}
 
-      <div
-        style={{
-          marginTop: "2rem",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "1.25rem",
-        }}
-      >
-        {!isRecording && !isProcessing && (
-          <DeviceSelector onDeviceSelect={setSelectedDeviceId} />
+        <div
+          className="glass-card"
+          style={{
+            padding: "2.5rem 1.5rem",
+            border: isRecording
+              ? "3px solid #ef4444"
+              : isProcessing
+                ? "3px solid #f59e0b"
+                : "2px solid var(--border)",
+            backgroundColor: "var(--secondary)",
+            fontSize: "1.75rem",
+            fontWeight: 700,
+            lineHeight: 1.8,
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "0.4rem",
+            justifyContent: "center",
+            boxShadow: isRecording ? "0 0 30px rgba(239, 68, 68, 0.2)" : "var(--shadow)",
+            minHeight: "260px",
+            alignItems: "center",
+            transition: "all 0.3s ease",
+            letterSpacing: "-0.02em"
+          }}
+        >
+          {renderedText}
+        </div>
+
+        {recognizedText && (
+          <div
+            className="glass-card"
+            style={{
+              marginTop: "1.5rem",
+              padding: "1.25rem",
+              background: "rgba(0,0,0,0.03)",
+              fontSize: "0.95rem",
+              color: "var(--foreground)",
+              borderStyle: "dashed",
+              opacity: 0.8
+            }}
+          >
+            <strong style={{ color: "var(--primary)", marginRight: "0.5rem" }}>识别结果：</strong>
+            {recognizedText}
+          </div>
         )}
-        {isRecording && mediaStream && <AudioVisualizer stream={mediaStream} />}
 
         <div
           style={{
-            fontWeight: 800,
-            color:
-              status === "SUCCESS"
-                ? "var(--success)"
-                : status === "RECORDING"
-                  ? "#ef4444"
-                  : "var(--primary)",
-            fontSize:
-              feedbackMsg.includes("Go!") || feedbackMsg.includes("SUCCESS")
-                ? "1.8rem"
-                : "1.1rem",
-            transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-            filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))"
+            marginTop: "2rem",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "1.25rem",
           }}
         >
-          {feedbackMsg}
-        </div>
+          {/* DeviceSelector moved to footer */}
+          {/* AudioVisualizer moved to footer */}
 
-        {/* Error Warning */}
-        {struggleItems.length > 3 && (
           <div
-            className="animate-slide-up"
             style={{
-              color: "#ef4444",
-              fontSize: "0.85rem",
-              background: "#fff1f2",
-              padding: "0.5rem 1rem",
-              borderRadius: "20px",
-              fontWeight: 700,
-              boxShadow: "0 4px 6px -1px rgba(225, 29, 72, 0.1)"
+              fontWeight: 800,
+              color:
+                status === "SUCCESS"
+                  ? "var(--success)"
+                  : status === "RECORDING"
+                    ? "#ef4444"
+                    : "var(--primary)",
+              fontSize:
+                feedbackMsg.includes("Go!") || feedbackMsg.includes("SUCCESS")
+                  ? "1.8rem"
+                  : "1.1rem",
+              transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+              filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))"
             }}
           >
-            🚧 错误稍多，请多尝试几次 (忽略标点)
+            {feedbackMsg}
           </div>
-        )}
+
+        </div>
+
       </div>
 
       {/* Floating Controller Footer */}
@@ -794,153 +885,257 @@ export default function SpeechTrainer() {
           bottom: "1.5rem",
           left: "50%",
           transform: "translateX(-50%)",
-          width: "calc(100% - 2rem)",
-          maxWidth: "760px",
-          padding: "1.25rem 2rem",
+          width: "calc(100% - 3rem)",
+          maxWidth: "500px",
+          padding: "0.5rem 1rem",
           display: "flex",
-          justifyContent: "center",
+          flexDirection: "column", // Change to column to stack buttons and selector
           alignItems: "center",
-          gap: "1.25rem",
-          boxShadow: "0 20px 50px rgba(0,0,0,0.2)",
+          gap: "0.5rem",
+          boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
           zIndex: 100,
-          background: "rgba(255, 255, 255, 0.95)",
-          border: "2px solid var(--primary)",
+          borderRadius: "30px",
+          background: "rgba(255, 255, 255, 0.9)",
+          backdropFilter: "blur(10px)",
+          border: "1px solid rgba(255,255,255,0.5)",
         }}
       >
-        {/* Previous */}
-        <button
-          onClick={prevSentence}
-          disabled={currentSentenceIndex === 0 || isRecording || isProcessing}
-          className="btn-primary"
-          style={{
-            width: 50,
-            height: 50,
-            padding: 0,
-            borderRadius: "15px",
-            background: "none",
-            border: "2px solid var(--border)",
-            color: "var(--foreground)",
-            boxShadow: "none",
-            opacity: currentSentenceIndex === 0 || isRecording || isProcessing ? 0.3 : 1
-          }}
-        >
-          <ArrowRight size={24} style={{ transform: "rotate(180deg)" }} />
-        </button>
-
-        {/* Speed & Audio Helpers */}
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <button
-            onClick={() => setPlaybackRate((prev) => (prev === 1.0 ? 0.8 : 1.0))}
+        {/* Error Warning - Floating above control bar */}
+        {struggleItems.length > 3 && (
+          <div
+            className="animate-slide-up"
             style={{
-              width: 50,
-              height: 50,
-              borderRadius: "15px",
-              background: playbackRate === 0.8 ? "var(--primary)" : "var(--glass)",
-              color: playbackRate === 0.8 ? "white" : "var(--primary)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              position: "absolute",
+              top: "-50px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              color: "#ef4444",
               fontSize: "0.85rem",
-              fontWeight: 800,
-              border: "2px solid var(--primary)"
+              background: "#fff1f2",
+              padding: "0.5rem 1rem",
+              borderRadius: "20px",
+              fontWeight: 700,
+              boxShadow: "0 4px 6px -1px rgba(225, 29, 72, 0.1)",
+              whiteSpace: "nowrap",
+              zIndex: 90
             }}
           >
-            {playbackRate === 1.0 ? "1x" : "0.8x"}
-          </button>
+            🚧 错误稍多，请多尝试几次 (忽略标点)
+          </div>
+        )}
 
-          <button
-            onClick={togglePlayOriginal}
-            disabled={isRecording || isProcessing}
-            style={{
-              width: 50,
-              height: 50,
-              borderRadius: "15px",
-              background: isPlayingOriginal ? "var(--primary)" : "var(--glass)",
-              color: isPlayingOriginal ? "white" : "var(--primary)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              border: "2px solid var(--primary)"
-            }}
-          >
-            {isPlayingOriginal ? <Square size={20} /> : <Volume2 size={24} />}
-          </button>
+        {/* Row 1: Buttons Grid */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "1fr auto 1fr",
+          width: "100%",
+          alignItems: "center"
+        }}>
+          {/* LEFT COLUMN: Controls */}
+          <div style={{ display: "flex", gap: "0.5rem", justifySelf: "start" }}>
+            {/* Previous */}
+            <button
+              onClick={prevSentence}
+              disabled={currentSentenceIndex === 0 || isRecording || isProcessing}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: "50%",
+                background: "var(--glass)",
+                border: "none",
+                color: "var(--foreground)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.2s",
+                opacity: currentSentenceIndex === 0 || isRecording || isProcessing ? 0.3 : 0.8,
+                cursor: "pointer"
+              }}
+            >
+              <ArrowRight size={18} style={{ transform: "rotate(180deg)" }} />
+            </button>
+
+            {/* Speed */}
+            <button
+              onClick={() => setPlaybackRate((prev) => (prev === 1.0 ? 0.8 : 1.0))}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: "50%",
+                background: playbackRate === 0.8 ? "var(--primary)" : "var(--glass)",
+                color: playbackRate === 0.8 ? "white" : "var(--primary)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "0.75rem",
+                fontWeight: 800,
+                border: "none",
+                cursor: "pointer"
+              }}
+            >
+              {playbackRate === 1.0 ? "1x" : "0.8x"}
+            </button>
+
+            {/* Original Audio */}
+            <button
+              onClick={togglePlayOriginal}
+              disabled={isRecording || isProcessing}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: "50%",
+                background: isPlayingOriginal ? "var(--primary)" : "var(--glass)",
+                color: isPlayingOriginal ? "white" : "var(--primary)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "none",
+                cursor: "pointer"
+              }}
+            >
+              {isPlayingOriginal ? <Square size={16} /> : <Volume2 size={18} />}
+            </button>
+          </div>
+
+          {/* CENTER COLUMN: Record Button */}
+          <div style={{ justifySelf: "center" }}>
+            <button
+              onClick={() => {
+                if (isRecording) {
+                  stopRecording();
+                } else {
+                  startRecording();
+                }
+              }}
+              disabled={isProcessing || status === "SUCCESS"}
+              style={{
+                width: "64px",
+                height: "64px",
+                borderRadius: "50%",
+                background: isRecording ? "#ef4444" : "var(--primary)",
+                color: "white",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                boxShadow: isRecording
+                  ? "0 0 25px rgba(239, 68, 68, 0.6)"
+                  : "0 10px 25px -5px rgba(99, 102, 241, 0.5)",
+                border: "4px solid white",
+                transform: isRecording ? "scale(1.15)" : "scale(1)",
+                opacity: isProcessing || status === "SUCCESS" ? 0.3 : 1,
+                cursor: "pointer"
+              }}
+            >
+              {isProcessing ? (
+                <Loader2 className="animate-spin" size={28} />
+              ) : isRecording ? (
+                <Square size={28} fill="white" />
+              ) : (
+                <Mic size={28} />
+              )}
+            </button>
+          </div>
+
+          {/* RIGHT COLUMN: Playback & Next */}
+          <div style={{ display: "flex", gap: "0.5rem", justifySelf: "end" }}>
+            {/* Play Recorded */}
+            <button
+              onClick={togglePlayRecording}
+              disabled={!recordedAudio || isRecording || isProcessing}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: "50%",
+                background: isPlayingRecording ? "#10b981" : "var(--glass)",
+                color: isPlayingRecording ? "white" : "#10b981",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "none",
+                opacity: !recordedAudio ? 0.2 : 1,
+                cursor: "pointer"
+              }}
+            >
+              {isPlayingRecording ? <Square size={16} /> : <Play size={18} />}
+            </button>
+
+            {/* Next */}
+            <button
+              onClick={advanceSentence}
+              disabled={isRecording || isProcessing || (struggleItems.length > 3 && status !== "SUCCESS")}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: "50%",
+                background: status === "SUCCESS" ? "var(--success)" : "var(--glass)",
+                border: "none",
+                color: status === "SUCCESS" ? "white" : "var(--foreground)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.2s",
+                opacity: isRecording || isProcessing || (struggleItems.length > 3 && status !== "SUCCESS") ? 0.3 : 0.8,
+                cursor: "pointer"
+              }}
+            >
+              <ArrowRight size={18} />
+            </button>
+          </div>
         </div>
 
-        {/* MIC MAIN ACTION */}
-        <button
-          onMouseDown={startRecording}
-          onMouseUp={stopRecording}
-          onTouchStart={startRecording}
-          onTouchEnd={stopRecording}
-          disabled={isProcessing || status === "SUCCESS"}
-          style={{
-            width: "80px",
-            height: "80px",
-            borderRadius: "50%",
-            background: isRecording ? "#ef4444" : "var(--primary)",
-            color: "white",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-            boxShadow: isRecording
-              ? "0 0 25px rgba(239, 68, 68, 0.6)"
-              : "0 10px 25px -5px rgba(99, 102, 241, 0.5)",
-            border: "4px solid white",
-            transform: isRecording ? "scale(1.15)" : "scale(1)",
-            opacity: isProcessing || status === "SUCCESS" ? 0.3 : 1
-          }}
-        >
-          {isProcessing ? (
-            <Loader2 className="animate-spin" size={32} />
-          ) : isRecording ? (
-            <Square size={32} fill="white" />
-          ) : (
-            <Mic size={32} />
-          )}
-        </button>
 
-        {/* Played Recorded Audio */}
-        <button
-          onClick={togglePlayRecording}
-          disabled={!recordedAudio || isRecording || isProcessing}
-          style={{
-            width: 50,
-            height: 50,
-            borderRadius: "15px",
-            background: isPlayingRecording ? "#10b981" : "var(--glass)",
-            color: isPlayingRecording ? "white" : "#10b981",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            border: "2px solid #10b981",
-            opacity: !recordedAudio ? 0.2 : 1
-          }}
-        >
-          {isPlayingRecording ? <Square size={20} /> : <Play size={24} />}
-        </button>
+        {/* Row 2: Dynamic Content Area (Fixed Height to prevent jitter) */}
+        <div style={{
+          position: "relative",
+          width: "100%",
+          height: "32px",
+          marginTop: "0.25rem",
+        }}>
+          {/* Audio Visualizer - Absolute Overlay */}
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              opacity: isRecording && mediaStream ? 0.8 : 0,
+              pointerEvents: isRecording ? "auto" : "none",
+              transition: "opacity 0.2s",
+              borderRadius: "12px",
+              overflow: "hidden",
+              zIndex: 10
+            }}
+          >
+            {isRecording && mediaStream && (
+              <AudioVisualizer stream={mediaStream} height={32} width="100%" />
+            )}
+          </div>
 
-        {/* Next */}
-        <button
-          onClick={advanceSentence}
-          disabled={isRecording || isProcessing || (struggleItems.length > 3 && status !== "SUCCESS")}
-          className="btn-primary"
-          style={{
-            width: 50,
-            height: 50,
-            padding: 0,
-            borderRadius: "15px",
-            background: status === "SUCCESS" ? "var(--success)" : "none",
-            border: "2px solid var(--border)",
-            color: status === "SUCCESS" ? "white" : "var(--foreground)",
-            boxShadow: "none",
-            opacity: isRecording || isProcessing || (struggleItems.length > 3 && status !== "SUCCESS") ? 0.3 : 1
-          }}
-        >
-          <ArrowRight size={24} />
-        </button>
+          {/* Device Selector - Absolute Overlay */}
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              opacity: !isRecording && !isProcessing ? 0.8 : 0,
+              pointerEvents: !isRecording && !isProcessing ? "auto" : "none",
+              transition: "opacity 0.2s",
+              transform: "scale(0.9)",
+              zIndex: 5
+            }}
+          >
+            <DeviceSelector onDeviceSelect={setSelectedDeviceId} />
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
+

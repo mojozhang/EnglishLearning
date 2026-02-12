@@ -22,8 +22,8 @@ export class WAVRecorder {
     | null = null;
 
   private silenceStartTime: number | null = null;
-  private readonly SPEECH_THRESHOLD = 0.03; // 人声阈值 (简单RMS)
-  private readonly SILENCE_DURATION = 4000; // 4秒
+  private readonly SPEECH_THRESHOLD = 0.035; // 提高阈值以过滤咳嗽/噪音 (原 0.015)
+  private readonly SILENCE_DURATION = 4000; // 4秒 (按用户要求保持)
 
   async start(stream: MediaStream) {
     this.audioContext = new AudioContext({ sampleRate: 16000 });
@@ -91,6 +91,7 @@ export class WAVRecorder {
   }
 
   stop(): Blob {
+    if (!this.recording) return new Blob([], { type: "audio/wav" });
     this.recording = false;
 
     if (this.processor) {
@@ -99,11 +100,17 @@ export class WAVRecorder {
     if (this.vadNode) {
       this.vadNode.disconnect();
     }
+    this.onSilence = null;
+    this.onVADStateChange = null;
     if (this.source) {
       this.source.disconnect();
     }
-    if (this.audioContext) {
-      this.audioContext.close();
+    if (this.audioContext && this.audioContext.state !== "closed") {
+      try {
+        this.audioContext.close();
+      } catch (e) {
+        console.warn("AudioContext already closing/closed", e);
+      }
     }
 
     // 合并所有buffer

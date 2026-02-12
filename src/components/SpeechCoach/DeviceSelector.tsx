@@ -64,7 +64,7 @@ export default function DeviceSelector({
   if (devices.length === 0) return null;
 
   return (
-    <div style={{ margin: "1rem 0" }}>
+    <div style={{ margin: 0 }}>
       <label style={{ marginRight: "0.5rem", fontSize: "0.875rem" }}>
         Select Microphone:{" "}
       </label>

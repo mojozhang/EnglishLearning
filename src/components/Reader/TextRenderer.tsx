@@ -102,7 +102,7 @@ export default function TextRenderer({ text, translation }: TextRendererProps) {
       <div key={index} style={{ marginBottom: "2.5rem" }} className="animate-slide-up">
         <div
           style={{
-            lineHeight: 2.2,
+            lineHeight: 2.5, // Increased line height to fit annotations comfortably
             fontSize: "1.35rem",
             fontWeight: 400,
             whiteSpace: "pre-wrap",
@@ -159,18 +159,19 @@ export default function TextRenderer({ text, translation }: TextRendererProps) {
                       position: "absolute",
                       left: "50%",
                       transform: "translateX(-50%)",
-                      top: "100%",
-                      marginTop: "6px",
-                      backgroundColor: "var(--foreground)",
-                      color: "var(--background)",
-                      padding: "4px 10px",
-                      borderRadius: "8px",
-                      fontSize: "0.8rem",
-                      fontWeight: 600,
+                      top: "100%", // Below the word
+                      marginTop: "-3px", // Pull up closer to the word (User requested "up 3px, stick to top")
+                      backgroundColor: "rgba(0,0,0,0.75)",
+                      color: "white",
+                      padding: "1px 5px",
+                      borderRadius: "4px",
+                      fontSize: "0.7rem",
+                      lineHeight: "1.2",
+                      fontWeight: 500,
                       whiteSpace: "nowrap",
                       zIndex: 50,
                       pointerEvents: "none",
-                      boxShadow: "var(--shadow-lg)",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
                     }}
                   >
                     {definition}

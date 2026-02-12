@@ -68,7 +68,7 @@ export const useStore = create<AppState>()((set) => ({
   currentBookId: null,
 
   setChunks: (chunks) =>
-    set({ chunks, currentChunkIndex: 0, phase: "READING" }),
+    set({ chunks, currentChunkIndex: 0, currentSentenceIndex: 0, phase: "READING" }), // Reset sentence index
   setPhase: (phase) => set({ phase }),
 
   nextChunk: () =>
@@ -80,6 +80,7 @@ export const useStore = create<AppState>()((set) => ({
           phase: "UPLOAD",
           chunks: [],
           currentChunkIndex: 0,
+          currentSentenceIndex: 0, // Reset
           vocabulary: [],
           masteredWords: [],
           currentBookId: null,
@@ -87,6 +88,7 @@ export const useStore = create<AppState>()((set) => ({
       }
       return {
         currentChunkIndex: nextIndex,
+        currentSentenceIndex: 0, // Reset sentence index when changing chunk
         phase: "READING",
         vocabulary: [],
         masteredWords: [],
@@ -98,6 +100,7 @@ export const useStore = create<AppState>()((set) => ({
       const prevIndex = Math.max(state.currentChunkIndex - 1, 0);
       return {
         currentChunkIndex: prevIndex,
+        currentSentenceIndex: 0, // Reset sentence index when changing chunk
         phase: "READING",
         vocabulary: [],
         masteredWords: [],
