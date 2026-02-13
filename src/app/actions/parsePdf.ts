@@ -1,6 +1,6 @@
 "use server";
 
-import pdf from "pdf-parse";
+const pdf = require("pdf-parse");
 
 export async function parsePdf(formData: FormData): Promise<{ text: string; error?: string }> {
     try {

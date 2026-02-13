@@ -24,7 +24,6 @@
     "next": "16.1.6",
     "node-fetch": "^3.3.2",
     "pdf-parse": "^2.4.5",
-    "pdfjs-dist": "^5.4.624",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "uuid": "^13.0.0",
