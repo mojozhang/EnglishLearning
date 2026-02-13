@@ -1,13 +1,6 @@
 "use server";
 
-import path from "path";
-
-// Polyfill for Node.js environment where DOMMatrix is missing (pdfjs-dist needs this)
-if (typeof DOMMatrix === "undefined") {
-    (global as any).DOMMatrix = class DOMMatrix {
-        constructor() { }
-    };
-}
+import pdf from "pdf-parse";
 
 export async function parsePdf(formData: FormData): Promise<{ text: string; error?: string }> {
     try {
@@ -17,40 +10,31 @@ export async function parsePdf(formData: FormData): Promise<{ text: string; erro
         }
 
         const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
 
-        // Dynamic import to avoid bundling issues, targeted at Node.js environment
-        const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+        // Custom render function to replicate "Structure-Aware" filtering
+        // pdf-parse allows a 'pagerender' option.
+        // We can access the raw PDFJS page object via pageData
+        const render_page = async (pageData: any) => {
+            // This is roughly equivalent to what we did with pdfjs-dist
+            const render_options = {
+                normalizeWhitespace: false,
+                disableCombineTextItems: false
+            };
 
-        // Config CMap and Font paths to ensure ligatures (fi, fl, etc.) are parsed correctly
-        const cMapUrl = path.join(process.cwd(), "node_modules/pdfjs-dist/cmaps/");
-        const standardFontDataUrl = path.join(process.cwd(), "node_modules/pdfjs-dist/standard_fonts/");
+            const textContent = await pageData.getTextContent(render_options);
 
-        const loadingTask = pdfjs.getDocument({
-            data: new Uint8Array(arrayBuffer),
-            cMapUrl,
-            cMapPacked: true,
-            standardFontDataUrl,
-            disableFontFace: false,
-        });
-
-        const doc = await loadingTask.promise;
-        const numPages = doc.numPages;
-        let fullText = "";
-
-        // 1. Coordinate-Based Filtering (Structure Analysis)
-        // We define a "Safe Zone". Text outside this zone (top header, bottom footer) is physically ignored.
-        const HEADER_HEIGHT_PERCENT = 0.05; // Top 5%
-        const FOOTER_HEIGHT_PERCENT = 0.05; // Bottom 5%
-
-        for (let i = 1; i <= numPages; i++) {
-            const page = await doc.getPage(i);
-            const viewport = page.getViewport({ scale: 1.0 });
+            // Get page height from viewport
+            const viewport = pageData.getViewport({ scale: 1.0 });
             const pageHeight = viewport.height;
-            const textContent = await page.getTextContent();
+
+            const HEADER_HEIGHT_PERCENT = 0.05; // Top 5%
+            const FOOTER_HEIGHT_PERCENT = 0.05; // Bottom 5%
 
             // Filter items based on Y-coordinate (PDF Coords: 0 is Bottom)
             const validItems = textContent.items.filter((item: any) => {
-                const y = item.transform[5]; // transform[5] is Y position
+                // item.transform is [scaleX, skewY, skewX, scaleY, x, y]
+                const y = item.transform[5];
 
                 // Remove Footer (near 0)
                 if (y < pageHeight * FOOTER_HEIGHT_PERCENT) return false;
@@ -61,13 +45,18 @@ export async function parsePdf(formData: FormData): Promise<{ text: string; erro
                 return true;
             });
 
-            // Join text items for the page
-            const pageText = validItems.map((item: any) => item.str).join(" ");
-            fullText += pageText + "\n";
-        }
+            // Join text items
+            return validItems.map((item: any) => item.str).join(" ") + "\n";
+        };
 
-        // 2. Robust Ligature Repair (Dictionary-Based Cleaning)
-        // Dealing with "ffi" (traffic -> trac), "ffl", etc.
+        const options = {
+            pagerender: render_page
+        };
+
+        const data = await pdf(buffer, options);
+        let fullText = data.text;
+
+        // 2. Robust Ligature Repair (moved from previous implementation)
         const LIGATURE_REPAIRS = [
             { pattern: /\btrac\b/gi, replacement: "traffic" },
             { pattern: /\bdicult\b/gi, replacement: "difficult" },
@@ -87,7 +76,11 @@ export async function parsePdf(formData: FormData): Promise<{ text: string; erro
             fullText = fullText.replace(pattern, replacement);
         });
 
+        // Basic clean up of excessive whitespace
+        fullText = fullText.replace(/\n\s*\n/g, "\n\n");
+
         return { text: fullText };
+
     } catch (error: any) {
         console.error("PDF Parse Error:", error);
         return { text: "", error: error.message || "Failed to parse PDF" };
