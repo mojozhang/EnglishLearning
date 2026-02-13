@@ -70,15 +70,14 @@ export default function SpeechTrainer() {
 
   const targetWords = useMemo(() => {
     const s = sentences[currentSentenceIndex] || "";
-    // Split by spaces, preserving punctuation in display
-    return s
-      .trim()
-      .split(/\s+/)
-      .filter((w: string) => w.length > 0)
-      .map((w: string) => ({
-        display: w,
-        clean: w.replace(/[.,!?;:"()]/g, "").replace(/[-—–]/g, "").toLowerCase(),
-      }));
+    const segmenter = new Intl.Segmenter("en", { granularity: "word" });
+    const segments = Array.from(segmenter.segment(s));
+
+    return segments.map((segment) => ({
+      display: segment.segment,
+      clean: segment.isWordLike ? segment.segment.toLowerCase() : "",
+      isWord: !!segment.isWordLike
+    }));
   }, [sentences, currentSentenceIndex]);
 
   const [isPlayingOriginal, setIsPlayingOriginal] = useState(false);
@@ -365,7 +364,10 @@ export default function SpeechTrainer() {
       (w) => !fillerWords.includes(normalize(w)),
     );
 
-    const n = targetWords.length;
+    // Filter target words for matching (ignore punctuation)
+    const matchableTargets = targetWords.filter(w => w.isWord);
+
+    const n = matchableTargets.length;
     const m = spokenWords.length;
 
     // DP Matrix
@@ -384,7 +386,7 @@ export default function SpeechTrainer() {
     // 1. Fill DP Table
     for (let i = 1; i <= n; i++) {
       for (let j = 1; j <= m; j++) {
-        const tWord = targetWords[i - 1];
+        const tWord = matchableTargets[i - 1];
         const sWord = spokenWords[j - 1]; // Spoken is already lowercase
 
         const tClean = normalize(tWord.clean);
@@ -446,7 +448,7 @@ export default function SpeechTrainer() {
         // Diagonal: The algorithm aligned these two.
         // We MUST validate if they are "good enough" to be marked green.
 
-        const tWord = targetWords[i - 1];
+        const tWord = matchableTargets[i - 1];
         const sWord = spokenWords[j - 1];
         const tClean = normalize(tWord.clean);
         const sClean = normalize(sWord);
@@ -503,7 +505,7 @@ export default function SpeechTrainer() {
     for (let k = 0; k < n; k++) {
       if (!matchedIndices.has(k)) {
         newStruggles.push({
-          word: targetWords[k].clean, // Use clean text for correct matching in render loop
+          word: matchableTargets[k].clean, // Use clean text for correct matching in render loop
           type: "wrong",
           timestamp: Date.now(),
         });
@@ -693,7 +695,14 @@ export default function SpeechTrainer() {
   // ==================== 渲染 ====================
   if (!chunks.length) return <div>没有文本</div>;
 
-  const renderedText = targetWords.map((item: { display: string; clean: string }, idx: number) => {
+  const renderedText = targetWords.map((item: { display: string; clean: string; isWord: boolean }, idx: number) => {
+    // Render punctuation/spaces simply
+    if (!item.isWord) {
+      // Don't render pure whitespace if we want to rely on gaps, but Intl.Segmenter produces whitespace segments.
+      // We usually want to preserve them for layout.
+      return <span key={idx} style={{ userSelect: "none" }}>{item.display}</span>;
+    }
+
     let color = "black";
     let bg = "transparent";
     let icon = "";
@@ -725,8 +734,8 @@ export default function SpeechTrainer() {
         style={{
           color,
           backgroundColor: bg,
-          padding: "2px 2px", // 稍微减少左右内边距，因为标点自带间隙
-          margin: "0 1px",
+          padding: "2px 0", // Reduced padding
+          margin: "0",      // Removed margin to let punctuation sit tight
           borderRadius: 4,
           transition: "all 0.2s",
           display: "inline-block",

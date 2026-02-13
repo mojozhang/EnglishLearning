@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useStore } from "@/store/useStore";
 import { useDataSync, loadUserData } from "@/hooks/useDataSync";
 import FileUploader from "@/components/Reader/FileUploader";
+import BookList from "@/components/Dashboard/BookList";
 import ReaderContainer from "@/components/Reader/ReaderContainer";
 import VocabularyTrainer from "@/components/Vocabulary/VocabularyTrainer";
 import SpeechTrainer from "@/components/SpeechCoach/SpeechTrainer";
@@ -272,8 +273,14 @@ export default function Home() {
 
       <div style={{ flex: 1, paddingTop: "1rem" }}>
         {phase === "UPLOAD" && (
-          <div className="glass-card" style={{ padding: "0.5rem" }}>
-            <FileUploader />
+          <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+            {/* Upload Area */}
+            <div className="glass-card" style={{ padding: "0.5rem" }}>
+              <FileUploader />
+            </div>
+
+            {/* Book List Area */}
+            <BookList />
           </div>
         )}
         {phase === "READING" && <ReaderContainer />}

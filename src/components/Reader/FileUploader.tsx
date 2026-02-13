@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Upload, Loader2 } from "lucide-react";
 import { useStore } from "@/store/useStore";
+import { parsePdf } from "@/app/actions/parsePdf";
+import { parseEpub } from "@/app/actions/parseEpub";
 
 export default function FileUploader() {
   const [isUploading, setIsUploading] = useState(false);
@@ -15,123 +17,28 @@ export default function FileUploader() {
     setIsUploading(true);
 
     try {
-      const arrayBuffer = await file.arrayBuffer();
+      const formData = new FormData();
+      formData.append("file", file);
 
-      // Dynamic import to avoid SSR issues with DOMMatrix
-      const pdfjsLib = await import("pdfjs-dist");
+      let text = "";
+      let error = undefined;
 
-      // Initialize Worker
-      if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+      // Determine file type and route to appropriate parser
+      if (file.type === "application/epub+zip" || file.name.toLowerCase().endsWith(".epub")) {
+        const result = await parseEpub(formData);
+        text = result.text;
+        error = result.error;
+      } else {
+        const result = await parsePdf(formData);
+        text = result.text;
+        error = result.error;
       }
 
-      // Load PDF
-      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-      const pdf = await loadingTask.promise;
-
-      console.log(`[PDF] PARSER_V14_FULL_RECONSTRUCT - Loaded: ${pdf.numPages} pages.`);
-
-      let allTextContent = "";
-
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: 1.0 });
-        const { height: pageHeight } = viewport;
-        const textContent = await page.getTextContent();
-        const items = textContent.items as any[];
-
-        // Group by Y position and handle X-axis spacing to fix "split words"
-        const lines: { y: number; items: { x: number; width: number; text: string }[] }[] = [];
-        for (const item of items) {
-          // V13 LIGATURE & PUA MAPPING: Broad spectrum fix for joint characters
-          let str = item.str
-            .replace(/\uFB00/g, "ff")
-            .replace(/\uFB01/g, "fi")
-            .replace(/\uFB02/g, "fl")
-            .replace(/\uFB03/g, "ffi")
-            .replace(/\uFB04/g, "ffl")
-            // Some PDFs use PUA (Private Use Area) for ligatures
-            .replace(/\uE000/g, "fi")
-            .replace(/\uE001/g, "fl")
-            .replace(/\u0000/g, "")
-            .trim();
-
-          if (!str) continue;
-
-          const y = item.transform[5];
-          const x = item.transform[4];
-          const width = item.width;
-
-          let existingLine = lines.find((line) => Math.abs(line.y - y) < 3);
-          if (existingLine) {
-            existingLine.items.push({ x, width, text: str });
-          } else {
-            lines.push({ y, items: [{ x, width, text: str }] });
-          }
-        }
-
-        // Process each line to merge items based on X distance
-        const processedLines: { y: number; text: string }[] = lines.map(line => {
-          // Sort items on the same line from left to right
-          const sortedItems = line.items.sort((a, b) => a.x - b.x);
-          let mergedText = "";
-
-          for (let k = 0; k < sortedItems.length; k++) {
-            const curr = sortedItems[k];
-            if (k === 0) {
-              mergedText = curr.text;
-            } else {
-              const prev = sortedItems[k - 1];
-              // V11 STRONG MERGE: Calculate gap
-              // Increased threshold to 5 to handle wider character spaces
-              const gap = curr.x - (prev.x + prev.width);
-
-              if (gap < 5) {
-                mergedText += curr.text;
-              } else {
-                mergedText += " " + curr.text;
-              }
-            }
-          }
-          return { y: line.y, text: mergedText };
-        });
-
-        processedLines.sort((a, b) => b.y - a.y);
-
-        // Filter out headers/footers based on relative position and patterns
-        const bodyOnly = processedLines.filter((line, idx) => {
-          const relativeY = 1 - line.y / pageHeight;
-
-          // 1. Position-based filtering: Cut top 5% and bottom 5% (Was 15%, causing text loss)
-          let isHeaderFooter = relativeY < 0.05 || relativeY > 0.95;
-
-          // 2. Pattern-based filtering for "Spaced Caps" titles usually found at top
-          // Example: "T H E  B O Y" -> Single char + spaces pattern
-          // V8 FIX: Also catch lines starting with numbers (page numbers) like "8 H ARRY..."
-          if (!isHeaderFooter && relativeY < 0.25) {
-            // Regex: Optional starting number, followed by 3+ groups of (Char + Space)
-            // \d+\s* -> Optional page number
-            // ([A-Z][\s\u00A0]+){3,} -> Spaced caps sequence
-            const spacedCapsPattern = /^(\d+\s+)?([A-Z][\s\u00A0]+){3,}/;
-            if (spacedCapsPattern.test(line.text.trim())) {
-              isHeaderFooter = true;
-              console.log(
-                `[V14-DEBUG] Filtered Spaced Header: "${line.text}"`,
-              );
-            }
-          }
-
-          if (i === 1 && idx < 12) {
-            console.log(
-              `[V14-DEBUG] P1 L${idx} (relY: ${relativeY.toFixed(3)}): "${line.text.substring(0, 50)}" ${isHeaderFooter ? "[FILTERED]" : "[KEPT]"}`,
-            );
-          }
-
-          return !isHeaderFooter;
-        });
-
-        allTextContent += bodyOnly.map((l) => l.text).join(" ") + " ";
+      if (error || !text) {
+        throw new Error(error || "解析失败 (Empty Result)");
       }
+
+      const allTextContent = text;
 
       // ============================================================
       // STEP 3: V14 Final Cleanup Pipeline
@@ -277,8 +184,9 @@ export default function FileUploader() {
         console.log(`[PDF] V6 Activated: ${book.id}`);
       }
     } catch (error: any) {
-      console.error("[PDF] Parse Error:", error);
-      alert(`PDF 解析失败: ${error.message || "未知错误"}`);
+      console.error("[Upload] Parse Error:", error);
+      const fileType = file.name.toLowerCase().endsWith(".epub") ? "EPUB" : "PDF";
+      alert(`${fileType} 解析失败: ${error.message || "未知错误"}`);
     } finally {
       setIsUploading(false);
     }
@@ -320,7 +228,7 @@ export default function FileUploader() {
         <input
           id="pdf-upload"
           type="file"
-          accept=".pdf"
+          accept=".pdf,.epub,application/epub+zip"
           onChange={handleFileUpload}
           style={{ display: "none" }}
           disabled={isUploading}
@@ -372,7 +280,7 @@ export default function FileUploader() {
             }}>
               {isUploading
                 ? "正在为您整理知识点，请稍候"
-                : "点击或将 PDF 拖到这里，开启高效学习之旅"}
+                : "点击或将 PDF/EPUB 拖到这里，开启高效学习之旅"}
             </p>
           </div>
 

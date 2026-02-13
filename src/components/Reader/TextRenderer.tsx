@@ -81,10 +81,8 @@ export default function TextRenderer({ text, translation }: TextRendererProps) {
   };
 
   const renderParagraph = (paragraphText: string, index: number) => {
-    // Updated regex to include words with hyphens (e.g., "decade-old", "book-lovers")
-    const tokens = paragraphText
-      .split(/([a-zA-Z0-9']+(?:-[a-zA-Z0-9']+)*)/)
-      .filter(Boolean);
+    const segmenter = new Intl.Segmenter("en", { granularity: "word" });
+    const segments = Array.from(segmenter.segment(paragraphText));
 
     // CHECK: If paragraph counts mismatch, we should show translation differently
     const isMismatch =
@@ -110,8 +108,9 @@ export default function TextRenderer({ text, translation }: TextRendererProps) {
             letterSpacing: "-0.01em"
           }}
         >
-          {tokens.map((token, idx) => {
-            const isWord = /^[a-zA-Z0-9']+(?:-[a-zA-Z0-9']+)*$/.test(token);
+          {segments.map((segment, idx) => {
+            const token = segment.segment;
+            const isWord = segment.isWordLike;
             const cleanWord = token.toLowerCase();
             const isSelected = isWord && vocabulary.includes(cleanWord);
             const definition = definitions[cleanWord];

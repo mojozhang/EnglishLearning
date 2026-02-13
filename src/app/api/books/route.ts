@@ -15,12 +15,42 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const books = await prisma.book.findMany({
-      where: { userId: payload.userId as string },
-      orderBy: { createdAt: "desc" },
-    });
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const skip = (page - 1) * limit;
 
-    return NextResponse.json({ books });
+    const [books, total] = await Promise.all([
+      prisma.book.findMany({
+        where: { userId: payload.userId as string },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          title: true,
+          progress: true,
+          currentPhase: true,
+          currentSentenceIndex: true,
+          createdAt: true,
+          updatedAt: true,
+          // content: false, // Don't fetch heavy content list
+        },
+      }),
+      prisma.book.count({
+        where: { userId: payload.userId as string },
+      }),
+    ]);
+
+    return NextResponse.json({
+      books,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
     console.error("Get books error:", error);
     return NextResponse.json(

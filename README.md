@@ -42,7 +42,14 @@ Optimized for non-native speakers, especially Chinese learners.
 
 ### 🚀 Recent Updates (V0.7.0)
 
-- **🔥 Critical Bug Fixes (核心修复)**:
+- **� User Dashboard & Persistence (个人书房)**:
+  - **Persistent Login**: Extended session to 30 days. No more frequent re-logins. (30天长效登录)
+  - **Smart Bookshelf**: "Resume Reading" instantly restores your progress, phase, and sentence index. (自动记忆阅读进度)
+  - **Space Management**: Delete finished books to free up server space. (一键清理旧书)
+- **📖 EPUB Support (EPUB 电子书)**:
+  - **Custom Parser**: Built-in lightweight engine to parse EPUB files with chapter awareness. (自研轻量级解析引擎)
+  - **Format Agnostic**: Seamlessly treats EPUBs just like PDFs, fully compatible with the Speech Trainer. (完美兼容所有功能)
+- **�🔥 Critical Bug Fixes (核心修复)**:
   - **Smart Abbreviation Handling**: Fixed an issue where abbreviations like "Mr." or "Mrs." caused incorrect sentence splitting.
   - **Number Mismatch Fix**: The speech trainer now intelligently maps words to digits (e.g., "eight" matches "8"), solving a major frustration.
   - **PDF Parsing V15**: Resolved text loss issues at page headers/footers and fixed split words like "ex perience" -> "experience".
@@ -194,7 +201,14 @@ Optimized for non-native speakers, especially Chinese learners.
 
 ### 🚀 最新更新 (V0.7.0)
 
-- **🔥 核心修复 (Critical Fixes)**:
+- **� 个人书房 (User Dashboard)**:
+  - **长效登录**: 登录有效期延长至 30 天，告别频繁验证。
+  - **智能书架**: 点击任意书籍，“一键续读”功能瞬间恢复您的阅读进度、当前阶段和句子位置。
+  - **空间管理**: 支持删除已读完的书籍，彻底释放服务器/数据库空间。
+- **📖 EPUB 电子书支持**:
+  - **自研引擎**: 内置轻量级 EPUB 解析器，不依赖外部不稳定服务。
+  - **格式通吃**: EPUB 文件上传后与 PDF 使用体验完全一致，支持点词查义和口语训练。
+- **�🔥 核心修复 (Critical Fixes)**:
   - **智能缩写处理**: 修复了 "Mr.", "Mrs." 等缩写词导致句子被错误切断的问题。
   - **数字识别优化**: 语音教练现在支持数字与单词的智能互通（例如读 "eight" 能匹配原文的 "8"）。
   - **PDF 解析 V15**: 彻底解决了页眉页脚文本丢失问题，并自动修复了 "ex perience" 等单词断裂的 Bug。
